@@ -16,6 +16,12 @@ export interface ThemeSettings {
   panel: string;
 }
 
+export interface Partner {
+  id: string;
+  name: string;
+  imageUrl: string;
+}
+
 export interface Product {
   id: string;
   name: string;

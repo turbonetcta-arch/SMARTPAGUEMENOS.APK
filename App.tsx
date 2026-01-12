@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Category, Product, ThemeSettings } from './types';
+import { Category, Product, ThemeSettings, Partner } from './types';
 import { INITIAL_PRODUCTS, CATEGORIES_CYCLE } from './constants';
 import PriceList from './components/PriceList';
 import FeaturedOffer from './components/FeaturedOffer';
@@ -15,6 +15,21 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
   });
   
+  const [partners, setPartners] = useState<Partner[]>(() => {
+    const saved = localStorage.getItem('smart_pague_menos_partners');
+    return saved ? JSON.parse(saved) : [
+      { id: 'p1', name: 'Friboi', imageUrl: 'https://seeklogo.com/images/F/friboi-logo-4E1564C79F-seeklogo.com.png' },
+      { id: 'p2', name: 'Sadia', imageUrl: 'https://seeklogo.com/images/S/sadia-logo-66107D3A63-seeklogo.com.png' },
+      { id: 'p3', name: 'Perdigão', imageUrl: 'https://seeklogo.com/images/P/perdigao-logo-A353086588-seeklogo.com.png' },
+      { id: 'p4', name: 'Seara', imageUrl: 'https://seeklogo.com/images/S/seara-logo-B11776378A-seeklogo.com.png' }
+    ];
+  });
+
+  const [isPartnersEnabled, setIsPartnersEnabled] = useState(() => {
+    const saved = localStorage.getItem('smart_pague_menos_partners_enabled');
+    return saved ? saved === 'true' : true;
+  });
+
   const [scrollSpeed, setScrollSpeed] = useState(() => {
     const saved = localStorage.getItem('smart_pague_menos_scroll_speed');
     return saved ? parseInt(saved) : 30;
@@ -27,35 +42,30 @@ const App: React.FC = () => {
   const [isHortifrutiEnabled, setIsHortifrutiEnabled] = useState(true);
   const [isGeneratingArt, setIsGeneratingArt] = useState(false);
   
-  // Theme State
   const [theme, setTheme] = useState<ThemeSettings>({
-    primary: '#b91c1c', // red-700
-    accent: '#facc15',  // yellow-400
-    background: '#09090b', // zinc-950
+    primary: '#b91c1c',
+    accent: '#facc15',
+    background: '#09090b',
     text: '#ffffff',
-    panel: 'rgba(24, 24, 27, 0.8)' // zinc-900 with opacity
+    panel: 'rgba(24, 24, 27, 0.8)'
   });
 
-  // States for TV Mode and Layout
   const [isTvMode, setIsTvMode] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [scaleX, setScaleX] = useState(1);
   const [scaleY, setScaleY] = useState(1);
   const [fitMode, setFitMode] = useState<'contain' | 'stretch'>('stretch');
   const [zoomOffset, setZoomOffset] = useState(0);
-  const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
+  const [rotation, setRotation] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<number | null>(null);
 
   const isPortraitMode = rotation === 90 || rotation === 270;
 
-  // Detecta Modo Remoto e Sincroniza
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('remote') === 'true') {
-      setIsRemoteMode(true);
-    }
+    if (params.get('remote') === 'true') setIsRemoteMode(true);
 
     const handleStorageChange = () => {
       const savedProducts = localStorage.getItem('smart_pague_menos_products');
@@ -63,13 +73,18 @@ const App: React.FC = () => {
       
       const savedSpeed = localStorage.getItem('smart_pague_menos_scroll_speed');
       if (savedSpeed) setScrollSpeed(parseInt(savedSpeed));
+
+      const savedPartners = localStorage.getItem('smart_pague_menos_partners');
+      if (savedPartners) setPartners(JSON.parse(savedPartners));
+
+      const savedPartnersEnabled = localStorage.getItem('smart_pague_menos_partners_enabled');
+      if (savedPartnersEnabled) setIsPartnersEnabled(savedPartnersEnabled === 'true');
     };
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Salva no localStorage para sincronização entre abas
   useEffect(() => {
     localStorage.setItem('smart_pague_menos_products', JSON.stringify(products));
   }, [products]);
@@ -78,23 +93,25 @@ const App: React.FC = () => {
     localStorage.setItem('smart_pague_menos_scroll_speed', scrollSpeed.toString());
   }, [scrollSpeed]);
 
+  useEffect(() => {
+    localStorage.setItem('smart_pague_menos_partners', JSON.stringify(partners));
+  }, [partners]);
+
+  useEffect(() => {
+    localStorage.setItem('smart_pague_menos_partners_enabled', isPartnersEnabled.toString());
+  }, [isPartnersEnabled]);
+
   const handleUserActivity = () => {
     if (isRemoteMode) return;
     setShowControls(true);
-    if (controlsTimeoutRef.current) {
-      window.clearTimeout(controlsTimeoutRef.current);
-    }
-    controlsTimeoutRef.current = window.setTimeout(() => {
-      setShowControls(false);
-    }, 3000);
+    if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current);
+    controlsTimeoutRef.current = window.setTimeout(() => setShowControls(false), 3000);
   };
 
   useEffect(() => {
     if (isRemoteMode) return;
     handleUserActivity();
-    return () => {
-      if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current);
-    };
+    return () => { if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current); };
   }, [isRemoteMode]);
 
   const activeCategories = useMemo(() => {
@@ -215,6 +232,8 @@ const App: React.FC = () => {
       <RemoteControl 
         products={products} 
         scrollSpeed={scrollSpeed}
+        isPartnersEnabled={isPartnersEnabled}
+        onTogglePartners={() => setIsPartnersEnabled(!isPartnersEnabled)}
         onUpdateScrollSpeed={setScrollSpeed}
         onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))}
         onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))}
@@ -317,6 +336,32 @@ const App: React.FC = () => {
           </div>
         </main>
 
+        {isPartnersEnabled && partners.length > 0 && (
+          <div className="h-28 bg-black/60 backdrop-blur-xl border-t border-white/10 flex items-center overflow-hidden z-20">
+            <div className="flex whitespace-nowrap animate-scroll items-center gap-24 px-12">
+              {[1, 2].map((group) => (
+                <React.Fragment key={group}>
+                  {partners.map((partner) => (
+                    <div key={`${partner.id}-${group}`} className="flex items-center gap-10 group/partner">
+                      <div className="relative">
+                        <div className="absolute -inset-2 bg-white/5 rounded-full blur-xl opacity-0 group-hover/partner:opacity-100 transition-opacity"></div>
+                        <img 
+                          src={partner.imageUrl} 
+                          alt={partner.name} 
+                          className="h-20 w-auto object-contain filter grayscale invert brightness-[3] drop-shadow-lg group-hover/partner:grayscale-0 group-hover/partner:brightness-100 transition-all duration-500"
+                        />
+                      </div>
+                      <span className="text-white font-black text-4xl uppercase tracking-tighter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]">
+                        {partner.name}
+                      </span>
+                    </div>
+                  ))}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        )}
+
         <footer className="h-14 bg-white flex items-center overflow-hidden z-20 shadow-[0_-15px_40px_rgba(0,0,0,0.5)]">
           <div className="flex whitespace-nowrap animate-scroll items-center gap-12 px-8">
             {[1, 2, 3].map((i) => (
@@ -364,6 +409,10 @@ const App: React.FC = () => {
           zoomOffset={zoomOffset}
           fitMode={fitMode}
           scrollSpeed={scrollSpeed}
+          partners={partners}
+          isPartnersEnabled={isPartnersEnabled}
+          onUpdatePartners={setPartners}
+          onTogglePartners={() => setIsPartnersEnabled(!isPartnersEnabled)}
           onUpdateScrollSpeed={setScrollSpeed}
           onUpdateFitMode={setFitMode}
           onUpdateZoom={setZoomOffset}

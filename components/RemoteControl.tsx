@@ -5,12 +5,22 @@ import { Product, Category } from '../types';
 interface RemoteControlProps {
   products: Product[];
   scrollSpeed: number;
+  isPartnersEnabled: boolean;
+  onTogglePartners: () => void;
   onUpdateScrollSpeed: (speed: number) => void;
   onUpdatePrice: (id: string, price: number) => void;
   onToggleOffer: (id: string) => void;
 }
 
-const RemoteControl: React.FC<RemoteControlProps> = ({ products, scrollSpeed, onUpdateScrollSpeed, onUpdatePrice, onToggleOffer }) => {
+const RemoteControl: React.FC<RemoteControlProps> = ({ 
+  products, 
+  scrollSpeed, 
+  isPartnersEnabled,
+  onTogglePartners,
+  onUpdateScrollSpeed, 
+  onUpdatePrice, 
+  onToggleOffer 
+}) => {
   return (
     <div className="min-h-screen bg-zinc-950 text-white p-6 font-inter pb-32">
       <header className="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
@@ -22,33 +32,43 @@ const RemoteControl: React.FC<RemoteControlProps> = ({ products, scrollSpeed, on
       </header>
 
       {/* Seção de Ajustes de Painel */}
-      <div className="mb-10 bg-indigo-950/20 border border-indigo-500/20 rounded-3xl p-6">
-        <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-4">Ajustes do Painel</h3>
-        <div className="space-y-6">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-               <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Velocidade da Lista</span>
-               <span className="text-indigo-400 font-black">{scrollSpeed}s</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[8px] font-black uppercase text-zinc-600">Rápido</span>
-              <input 
-                type="range" 
-                min="5" 
-                max="120" 
-                step="1" 
-                value={scrollSpeed} 
-                onChange={(e) => onUpdateScrollSpeed(parseInt(e.target.value))} 
-                className="flex-1 accent-indigo-500 h-8" 
-              />
-              <span className="text-[8px] font-black uppercase text-zinc-600">Lento</span>
-            </div>
-            <div className="flex gap-2 mt-4">
-               <button onClick={() => onUpdateScrollSpeed(15)} className="flex-1 py-3 bg-zinc-900 border border-white/5 text-[9px] font-black rounded-xl uppercase">Rápido</button>
-               <button onClick={() => onUpdateScrollSpeed(30)} className="flex-1 py-3 bg-zinc-900 border border-white/5 text-[9px] font-black rounded-xl uppercase">Normal</button>
-               <button onClick={() => onUpdateScrollSpeed(60)} className="flex-1 py-3 bg-zinc-900 border border-white/5 text-[9px] font-black rounded-xl uppercase">Lento</button>
+      <div className="mb-10 bg-indigo-950/20 border border-indigo-500/20 rounded-3xl p-6 space-y-6">
+        <div>
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-4">Ajustes do Painel</h3>
+          <div className="space-y-6">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                 <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Velocidade da Lista</span>
+                 <span className="text-indigo-400 font-black">{scrollSpeed}s</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[8px] font-black uppercase text-zinc-600">Rápido</span>
+                <input 
+                  type="range" 
+                  min="5" 
+                  max="120" 
+                  step="1" 
+                  value={scrollSpeed} 
+                  onChange={(e) => onUpdateScrollSpeed(parseInt(e.target.value))} 
+                  className="flex-1 accent-indigo-500 h-8" 
+                />
+                <span className="text-[8px] font-black uppercase text-zinc-600">Lento</span>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Controle de Marcas Parceiras */}
+        <div className="pt-4 border-t border-white/5">
+           <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Marcas Parceiras</span>
+              <button 
+                onClick={onTogglePartners}
+                className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase transition-all ${isPartnersEnabled ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-500'}`}
+              >
+                {isPartnersEnabled ? 'VISÍVEL' : 'OCULTO'}
+              </button>
+           </div>
         </div>
       </div>
 

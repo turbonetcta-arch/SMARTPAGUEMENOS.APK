@@ -18,8 +18,8 @@
         font-family: 'Oswald', sans-serif;
       }
       @keyframes scroll {
-        0% { transform: translateY(0); }
-        100% { transform: translateY(-50%); }
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
       }
       @keyframes scroll-vertical {
         0% { transform: translateY(0); }
@@ -42,7 +42,7 @@
         to { transform: scale(var(--base-scale)) rotate(calc(var(--base-rotation) + 360deg)); }
       }
       .animate-scroll {
-        animation: scroll 20s linear infinite;
+        animation: scroll 30s linear infinite;
       }
       .animate-scroll-vertical {
         animation: scroll-vertical 30s linear infinite;
@@ -74,6 +74,9 @@
       .custom-scrollbar::-webkit-scrollbar-thumb {
         background: #3f3f46;
         border-radius: 10px;
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
       }
     </style>
   <script type="importmap">
