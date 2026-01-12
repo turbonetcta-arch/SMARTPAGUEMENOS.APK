@@ -4,13 +4,15 @@ import { Product, Category } from '../types';
 
 interface RemoteControlProps {
   products: Product[];
+  scrollSpeed: number;
+  onUpdateScrollSpeed: (speed: number) => void;
   onUpdatePrice: (id: string, price: number) => void;
   onToggleOffer: (id: string) => void;
 }
 
-const RemoteControl: React.FC<RemoteControlProps> = ({ products, onUpdatePrice, onToggleOffer }) => {
+const RemoteControl: React.FC<RemoteControlProps> = ({ products, scrollSpeed, onUpdateScrollSpeed, onUpdatePrice, onToggleOffer }) => {
   return (
-    <div className="min-h-screen bg-zinc-950 text-white p-6 font-inter">
+    <div className="min-h-screen bg-zinc-950 text-white p-6 font-inter pb-32">
       <header className="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
         <div>
           <h1 className="text-2xl font-black font-oswald tracking-tighter text-indigo-400">REMOTE PANEL</h1>
@@ -19,6 +21,38 @@ const RemoteControl: React.FC<RemoteControlProps> = ({ products, onUpdatePrice, 
         <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
       </header>
 
+      {/* Seção de Ajustes de Painel */}
+      <div className="mb-10 bg-indigo-950/20 border border-indigo-500/20 rounded-3xl p-6">
+        <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-4">Ajustes do Painel</h3>
+        <div className="space-y-6">
+          <div>
+            <div className="flex justify-between items-center mb-2">
+               <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Velocidade da Lista</span>
+               <span className="text-indigo-400 font-black">{scrollSpeed}s</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[8px] font-black uppercase text-zinc-600">Rápido</span>
+              <input 
+                type="range" 
+                min="5" 
+                max="120" 
+                step="1" 
+                value={scrollSpeed} 
+                onChange={(e) => onUpdateScrollSpeed(parseInt(e.target.value))} 
+                className="flex-1 accent-indigo-500 h-8" 
+              />
+              <span className="text-[8px] font-black uppercase text-zinc-600">Lento</span>
+            </div>
+            <div className="flex gap-2 mt-4">
+               <button onClick={() => onUpdateScrollSpeed(15)} className="flex-1 py-3 bg-zinc-900 border border-white/5 text-[9px] font-black rounded-xl uppercase">Rápido</button>
+               <button onClick={() => onUpdateScrollSpeed(30)} className="flex-1 py-3 bg-zinc-900 border border-white/5 text-[9px] font-black rounded-xl uppercase">Normal</button>
+               <button onClick={() => onUpdateScrollSpeed(60)} className="flex-1 py-3 bg-zinc-900 border border-white/5 text-[9px] font-black rounded-xl uppercase">Lento</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Gerenciar Produtos</h3>
       <div className="space-y-4">
         {products.map(product => (
           <div key={product.id} className="bg-zinc-900 rounded-3xl p-5 border border-white/5 shadow-xl">

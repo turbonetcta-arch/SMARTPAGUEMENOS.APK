@@ -3,7 +3,8 @@ export enum Category {
   BOVINOS = 'BOVINOS',
   SUINOS = 'SUÍNOS',
   AVES = 'AVES',
-  FRUTAS = 'FRUTAS',
+  FRUTAS = 'HORTIFRUTI',
+  BEBIDAS = 'BEBIDAS GELADAS',
   ESPECIAIS = 'CORTES ESPECIAIS'
 }
 

@@ -13,24 +13,29 @@ export const INITIAL_PRODUCTS: Product[] = [
   // Suinos
   { id: 's1', name: 'BISTECA SUÍNA', price: 18.99, unit: 'kg', category: Category.SUINOS },
   { id: 's2', name: 'COSTELA SUÍNA', price: 21.99, unit: 'kg', category: Category.SUINOS, isOffer: true, offerPrice: 19.90 },
-  { id: 's6', name: 'LOMBO SUÍNO', price: 30.00, unit: 'kg', category: Category.SUINOS },
 
   // Aves
   { id: 'a1', name: 'COXA E SOBRECOXA', price: 13.49, unit: 'kg', category: Category.AVES },
   { id: 'a2', name: 'FILÉ DE PEITO', price: 24.30, unit: 'kg', category: Category.AVES },
   { id: 'a4', name: 'COXINHA DA ASA', price: 19.99, unit: 'kg', category: Category.AVES, isOffer: true, offerPrice: 17.50 },
 
-  // Frutas (Antiga Bebidas)
+  // Frutas
   { id: 'f1', name: 'BANANA PRATA', price: 5.99, unit: 'kg', category: Category.FRUTAS },
   { id: 'f2', name: 'MAÇÃ NACIONAL', price: 8.49, unit: 'kg', category: Category.FRUTAS, isOffer: true, offerPrice: 6.99 },
-  { id: 'f3', name: 'LARANJA PERA', price: 4.50, unit: 'kg', category: Category.FRUTAS },
   { id: 'f4', name: 'MELANCIA', price: 2.99, unit: 'kg', category: Category.FRUTAS },
-  { id: 'f5', name: 'UVA SEM SEMENTE', price: 12.90, unit: 'kg', category: Category.FRUTAS },
+
+  // Bebidas Geladas
+  { id: 'd1', name: 'COCA-COLA 2L', price: 11.99, unit: 'un', category: Category.BEBIDAS },
+  { id: 'd2', name: 'CERVEJA HEINEKEN 330ML', price: 6.49, unit: 'un', category: Category.BEBIDAS, isOffer: true, offerPrice: 5.89 },
+  { id: 'd3', name: 'SUCO DEL VALLE 1L', price: 7.99, unit: 'un', category: Category.BEBIDAS },
+  { id: 'd4', name: 'ÁGUA MINERAL 500ML', price: 2.50, unit: 'un', category: Category.BEBIDAS },
+  { id: 'd5', name: 'ENERGÉTICO MONSTER', price: 9.90, unit: 'un', category: Category.BEBIDAS, isOffer: true, offerPrice: 8.50 },
 ];
 
 export const CATEGORIES_CYCLE = [
   Category.BOVINOS,
   Category.SUINOS,
   Category.AVES,
-  Category.FRUTAS
+  Category.FRUTAS,
+  Category.BEBIDAS
 ];

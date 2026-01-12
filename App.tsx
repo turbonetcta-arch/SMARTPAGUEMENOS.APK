@@ -15,6 +15,11 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
   });
   
+  const [scrollSpeed, setScrollSpeed] = useState(() => {
+    const saved = localStorage.getItem('smart_pague_menos_scroll_speed');
+    return saved ? parseInt(saved) : 30;
+  });
+
   const [isRemoteMode, setIsRemoteMode] = useState(false);
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [activeOfferIndex, setActiveOfferIndex] = useState(0);
@@ -53,8 +58,11 @@ const App: React.FC = () => {
     }
 
     const handleStorageChange = () => {
-      const saved = localStorage.getItem('smart_pague_menos_products');
-      if (saved) setProducts(JSON.parse(saved));
+      const savedProducts = localStorage.getItem('smart_pague_menos_products');
+      if (savedProducts) setProducts(JSON.parse(savedProducts));
+      
+      const savedSpeed = localStorage.getItem('smart_pague_menos_scroll_speed');
+      if (savedSpeed) setScrollSpeed(parseInt(savedSpeed));
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -65,6 +73,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('smart_pague_menos_products', JSON.stringify(products));
   }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem('smart_pague_menos_scroll_speed', scrollSpeed.toString());
+  }, [scrollSpeed]);
 
   const handleUserActivity = () => {
     if (isRemoteMode) return;
@@ -160,9 +172,15 @@ const App: React.FC = () => {
     setIsGeneratingArt(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const visualFocus = currentOffer.category === Category.FRUTAS 
-        ? "extremely juicy fruits, glistening with fresh dew, vibrant bursting colors, sweet and ripe appearance" 
-        : "succulent premium meat, rich marbling, glistening texture, fresh cut, deep red natural colors, gourmet presentation";
+      let visualFocus = "";
+      
+      if (currentOffer.category === Category.FRUTAS) {
+        visualFocus = "extremely juicy fruits, glistening with fresh dew, vibrant bursting colors, sweet and ripe appearance";
+      } else if (currentOffer.category === Category.BEBIDAS) {
+        visualFocus = "extremely cold beverage bottle/can, covered in ice crystals and condensation, frozen atmosphere, splashing cold water, refreshing blue lighting";
+      } else {
+        visualFocus = "succulent premium meat, rich marbling, glistening texture, fresh cut, deep red natural colors, gourmet presentation";
+      }
       
       const prompt = `Hyper-realistic professional digital signage advertisement for ${currentOffer.name}. ${visualFocus}. Mouth-watering, appetizing, food-blog quality. Cinematic lighting, elegant background with subtle sparks, high resolution 8k, extremely detailed textures to trigger hunger. Luxury market style.`;
       
@@ -196,6 +214,8 @@ const App: React.FC = () => {
     return (
       <RemoteControl 
         products={products} 
+        scrollSpeed={scrollSpeed}
+        onUpdateScrollSpeed={setScrollSpeed}
         onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))}
         onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))}
       />
@@ -265,7 +285,7 @@ const App: React.FC = () => {
 
         <main className={`flex-1 flex overflow-hidden relative ${isPortraitMode ? 'flex-col' : 'flex-row'}`} style={{ backgroundColor: 'var(--bg-color)' }}>
           <div className={`${isPortraitMode ? 'w-full h-[45%]' : 'w-[50%] h-full'} flex flex-col transition-all duration-700 ease-in-out border-white/5 shadow-[20px_20px_50px_rgba(0,0,0,0.5)] z-10 ${isPortraitMode ? 'border-b' : 'border-r'}`}>
-            <PriceList products={products} currentCategory={currentCategory} />
+            <PriceList products={products} currentCategory={currentCategory} scrollSpeed={scrollSpeed} />
           </div>
           
           <div className={`${isPortraitMode ? 'w-full h-[55%]' : 'w-[50%] h-full'} transition-all duration-700 ease-in-out relative overflow-hidden`}>
@@ -343,6 +363,8 @@ const App: React.FC = () => {
           isTvMode={isTvMode}
           zoomOffset={zoomOffset}
           fitMode={fitMode}
+          scrollSpeed={scrollSpeed}
+          onUpdateScrollSpeed={setScrollSpeed}
           onUpdateFitMode={setFitMode}
           onUpdateZoom={setZoomOffset}
           isHortifrutiEnabled={isHortifrutiEnabled}

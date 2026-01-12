@@ -9,6 +9,8 @@ interface AdminMenuProps {
   isTvMode: boolean;
   zoomOffset: number;
   fitMode: 'contain' | 'stretch';
+  scrollSpeed: number;
+  onUpdateScrollSpeed: (speed: number) => void;
   onUpdateFitMode: (mode: 'contain' | 'stretch') => void;
   onUpdateZoom: (zoom: number) => void;
   isHortifrutiEnabled: boolean;
@@ -33,6 +35,8 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
   isTvMode,
   zoomOffset,
   fitMode,
+  scrollSpeed,
+  onUpdateScrollSpeed,
   onUpdateFitMode,
   onUpdateZoom,
   isHortifrutiEnabled,
@@ -218,6 +222,32 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                       <button onClick={() => onUpdateFitMode('stretch')} className={`flex-1 py-2 text-[10px] font-black uppercase rounded-lg transition-all ${fitMode === 'stretch' ? 'bg-yellow-500 text-black' : 'text-zinc-500'}`}>Full Screen</button>
                     </div>
                   </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-bold uppercase text-xs tracking-widest">Velocidade de Rolagem</span>
+                      <span className="text-yellow-400 font-black font-oswald text-xl">{scrollSpeed}s</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-[10px] font-black text-white/30 uppercase">Rápido</span>
+                      <input 
+                        type="range" 
+                        min="5" 
+                        max="120" 
+                        step="1" 
+                        value={scrollSpeed} 
+                        onChange={(e) => onUpdateScrollSpeed(parseInt(e.target.value))} 
+                        className="flex-1 accent-yellow-500" 
+                      />
+                      <span className="text-[10px] font-black text-white/30 uppercase">Lento</span>
+                    </div>
+                    <div className="flex gap-2">
+                       <button onClick={() => onUpdateScrollSpeed(15)} className="flex-1 py-2 bg-zinc-800 text-white text-[9px] font-black rounded-lg uppercase">Mto Rápido</button>
+                       <button onClick={() => onUpdateScrollSpeed(30)} className="flex-1 py-2 bg-zinc-800 text-white text-[9px] font-black rounded-lg uppercase">Normal</button>
+                       <button onClick={() => onUpdateScrollSpeed(60)} className="flex-1 py-2 bg-zinc-800 text-white text-[9px] font-black rounded-lg uppercase">Lento</button>
+                    </div>
+                  </div>
+
                   <div className="flex justify-between items-center mt-4">
                     <span className="text-white font-bold uppercase text-xs tracking-widest">Ajuste de Zoom</span>
                     <span className="text-yellow-400 font-black font-oswald text-xl">{(zoomOffset * 100).toFixed(0)}%</span>
