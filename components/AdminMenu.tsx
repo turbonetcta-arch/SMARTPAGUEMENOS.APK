@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Product, Category, ThemeSettings, Partner } from '../types';
 import { GoogleGenAI } from "@google/genai";
 
@@ -76,6 +76,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
 
   const [newPartnerName, setNewPartnerName] = useState('');
   const [newPartnerUrl, setNewPartnerUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const remoteUrl = `${window.location.origin}${window.location.pathname}?remote=true`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(remoteUrl)}&color=ffffff&bgcolor=000000`;
@@ -142,6 +143,17 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
     setNewProductPrice('');
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewPartnerUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAddPartnerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPartnerName || !newPartnerUrl) return;
@@ -155,7 +167,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
     // Atualiza lista
     onUpdatePartners([...partners, newPartner]);
     
-    // Volta para a tela de controle de parceiros (fecha modal e garante a aba correta)
+    // Volta para a tela de controle de parceiros
     setIsAddingPartner(false);
     setActiveTab('partners'); 
     
@@ -391,10 +403,47 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Nome da Marca</label>
                    <input value={newPartnerName} onChange={(e) => setNewPartnerName(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-5 text-white font-bold text-xl uppercase" placeholder="EX: FRIBOI" />
                 </div>
+                
                 <div className="space-y-2">
-                   <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">URL da Logo (Manual)</label>
-                   <input value={newPartnerUrl} onChange={(e) => setNewPartnerUrl(e.target.value)} className="w-full bg-black border border-white/10 rounded-2xl p-5 text-white font-bold text-xl" placeholder="https://link-da-foto.com/logo.png" />
+                   <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Logo da Marca</label>
+                   <div className="flex flex-col gap-4">
+                      <button 
+                        type="button" 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase py-5 rounded-2xl flex items-center justify-center gap-3 transition-all"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Carregar dos Arquivos da TV
+                      </button>
+                      <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileChange} 
+                        accept="image/*" 
+                        className="hidden" 
+                      />
+                      
+                      <div className="relative flex items-center">
+                        <div className="flex-grow border-t border-white/10"></div>
+                        <span className="flex-shrink mx-4 text-[10px] font-black text-zinc-600 uppercase">OU URL MANUAL</span>
+                        <div className="flex-grow border-t border-white/10"></div>
+                      </div>
+                      
+                      <input 
+                        value={newPartnerUrl} 
+                        onChange={(e) => setNewPartnerUrl(e.target.value)} 
+                        className="w-full bg-black border border-white/10 rounded-2xl p-5 text-white font-bold text-xs" 
+                        placeholder="https://link-da-foto.com/logo.png" 
+                      />
+                   </div>
                 </div>
+
+                {newPartnerUrl && (
+                  <div className="mt-4 p-4 bg-black/50 rounded-2xl flex items-center justify-center">
+                    <img src={newPartnerUrl} className="max-h-24 object-contain" alt="Preview" />
+                  </div>
+                )}
+
                 <div className="flex gap-4 mt-8">
                   <button type="button" onClick={() => setIsAddingPartner(false)} className="flex-1 py-5 bg-white/5 text-white font-black uppercase rounded-2xl">Cancelar</button>
                   <button type="submit" className="flex-1 py-5 bg-yellow-500 text-black font-black uppercase rounded-2xl">Salvar Marca</button>

@@ -129,27 +129,34 @@ const App: React.FC = () => {
 
   const handleResize = () => {
     if (isRemoteMode) return;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    const baseW = isPortraitMode ? 1080 : 1920;
-    const baseH = isPortraitMode ? 1920 : 1080;
-    const visibleW = isPortraitMode ? baseH : baseW;
-    const visibleH = isPortraitMode ? baseW : baseH;
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+    
+    // Dimensões internas base
+    const contentW = isPortraitMode ? 1080 : 1920;
+    const contentH = isPortraitMode ? 1920 : 1080;
 
-    let targetScaleX = 1;
-    let targetScaleY = 1;
+    // Dimensões projetadas na tela após rotação
+    const projectedW = isPortraitMode ? contentH : contentW;
+    const projectedH = isPortraitMode ? contentW : contentH;
 
-    if (fitMode === 'stretch') {
-      targetScaleX = windowWidth / visibleW;
-      targetScaleY = windowHeight / visibleH;
+    let targetSX = 1;
+    let targetSY = 1;
+
+    // No modo TV, forçamos o preenchimento total (stretch) para simular painel profissional
+    const effectiveFit = isTvMode ? 'stretch' : fitMode;
+
+    if (effectiveFit === 'stretch') {
+      targetSX = winW / projectedW;
+      targetSY = winH / projectedH;
     } else {
-      const s = Math.min(windowWidth / visibleW, windowHeight / visibleH);
-      targetScaleX = s;
-      targetScaleY = s;
+      const s = Math.min(winW / projectedW, winH / projectedH);
+      targetSX = s;
+      targetSY = s;
     }
 
-    setScaleX(targetScaleX);
-    setScaleY(targetScaleY);
+    setScaleX(targetSX);
+    setScaleY(targetSY);
   };
 
   useEffect(() => {
@@ -176,9 +183,9 @@ const App: React.FC = () => {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
+      document.documentElement.requestFullscreen().then(() => setIsTvMode(true));
     } else {
-      document.exitFullscreen();
+      document.exitFullscreen().then(() => setIsTvMode(false));
     }
   };
 
@@ -261,6 +268,9 @@ const App: React.FC = () => {
     position: 'absolute',
     left: '50%',
     top: '50%',
+    // No modo TV, removemos bordas arredondadas e sombras externas para preencher o painel
+    borderRadius: isTvMode ? '0' : '2rem',
+    boxShadow: isTvMode ? 'none' : '0 0 100px rgba(0,0,0,0.5)',
   } as React.CSSProperties;
 
   return (
@@ -272,7 +282,7 @@ const App: React.FC = () => {
       <div 
         ref={containerRef}
         style={appStyle}
-        className={`flex flex-col shadow-[0_0_150px_rgba(0,0,0,1)] transition-all duration-700 ease-in-out ${isSpinning ? 'animate-spin-once' : ''}`}
+        className={`flex flex-col overflow-hidden transition-all duration-700 ease-in-out ${isSpinning ? 'animate-spin-once' : ''}`}
       >
         <header className="h-32 flex items-center justify-between px-10 border-b border-white/10 shadow-2xl relative z-20" style={{ background: `linear-gradient(to r, var(--primary-color), var(--bg-color))` }}>
           <div className="flex items-center gap-8">
@@ -324,34 +334,27 @@ const App: React.FC = () => {
                     <span className="text-[10px] font-black text-white/90 tracking-widest uppercase">AO VIVO</span>
                   </div>
                   <div className="w-[1px] h-4 bg-white/20"></div>
-                  <span className="text-[10px] font-black text-white/60 tracking-widest uppercase">FHD 1080i</span>
+                  <span className="text-[10px] font-black text-white/60 tracking-widest uppercase">FHD 1080p</span>
                </div>
             </div>
-          </div>
-
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-            <p className="text-[11px] font-black uppercase tracking-[0.5em] text-white/20 whitespace-nowrap">
-              OUTDOOR DIGITAL FABIO 99982690704
-            </p>
           </div>
         </main>
 
         {isPartnersEnabled && partners.length > 0 && (
-          <div className="h-28 bg-black/60 backdrop-blur-xl border-t border-white/10 flex items-center overflow-hidden z-20">
-            <div className="flex whitespace-nowrap animate-scroll items-center gap-24 px-12">
-              {[1, 2].map((group) => (
+          <div className="h-28 bg-black border-t border-white/10 flex items-center overflow-hidden z-20">
+            <div className="flex whitespace-nowrap animate-scroll items-center gap-32 px-12">
+              {[1, 2, 3].map((group) => (
                 <React.Fragment key={group}>
                   {partners.map((partner) => (
-                    <div key={`${partner.id}-${group}`} className="flex items-center gap-10 group/partner">
-                      <div className="relative">
-                        <div className="absolute -inset-2 bg-white/5 rounded-full blur-xl opacity-0 group-hover/partner:opacity-100 transition-opacity"></div>
+                    <div key={`${partner.id}-${group}`} className="flex items-center gap-12 group/partner">
+                      <div className="h-20 w-auto flex items-center justify-center p-2 bg-white rounded-2xl">
                         <img 
                           src={partner.imageUrl} 
                           alt={partner.name} 
-                          className="h-20 w-auto object-contain filter grayscale invert brightness-[3] drop-shadow-lg group-hover/partner:grayscale-0 group-hover/partner:brightness-100 transition-all duration-500"
+                          className="h-full w-auto object-contain"
                         />
                       </div>
-                      <span className="text-white font-black text-4xl uppercase tracking-tighter drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)]">
+                      <span className="text-white font-black text-6xl uppercase tracking-tighter drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
                         {partner.name}
                       </span>
                     </div>
@@ -364,7 +367,7 @@ const App: React.FC = () => {
 
         <footer className="h-14 bg-white flex items-center overflow-hidden z-20 shadow-[0_-15px_40px_rgba(0,0,0,0.5)]">
           <div className="flex whitespace-nowrap animate-scroll items-center gap-12 px-8">
-            {[1, 2, 3].map((i) => (
+            {[1, 2, 3, 4].map((i) => (
               <React.Fragment key={i}>
                 <span className="font-black text-2xl uppercase tracking-widest flex items-center gap-4" style={{ color: 'var(--primary-color)' }}>
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }}></span>
@@ -383,7 +386,7 @@ const App: React.FC = () => {
       <div className={`fixed bottom-16 right-8 z-[200] flex flex-col gap-5 transition-all duration-500 ${showControls ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20 pointer-events-none'}`}>
         <button 
           onClick={() => setRotation(prev => (prev + 90) % 360)} 
-          className="p-6 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-white/40 hover:text-white border border-white/10 shadow-2xl transition-all"
+          className="p-6 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-white border border-white/10 shadow-2xl transition-all"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
         </button>
