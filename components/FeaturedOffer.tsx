@@ -48,9 +48,12 @@ const FeaturedOffer: React.FC<FeaturedOfferProps> = ({
         </button>
       )}
 
-      {/* Selo Grande Superior (Apenas se parceiros estiverem DESATIVADOS) */}
+      {/* Selo Grande Superior */}
       {!isPartnersEnabled && (
-        <div className={`z-10 px-16 py-4 rounded-full font-black text-5xl mb-10 shadow-2xl transform -rotate-2 uppercase tracking-tighter font-oswald animate-bounce border-4 border-black/10 transition-all duration-500 ${isSale ? 'bg-yellow-400 text-black shadow-[0_0_40px_rgba(250,204,21,0.4)]' : 'bg-white text-red-600'}`}>
+        <div 
+          key={`stamp-${offer.id}`}
+          className={`z-10 px-16 py-4 rounded-full font-black text-5xl mb-10 shadow-2xl transform -rotate-2 uppercase tracking-tighter font-oswald border-4 border-black/10 transition-all duration-500 animate-stamp-pop ${isSale ? 'bg-yellow-400 text-black shadow-[0_0_40px_rgba(250,204,21,0.4)]' : 'bg-white text-red-600'}`}
+        >
           {stampText}
         </div>
       )}
@@ -67,21 +70,26 @@ const FeaturedOffer: React.FC<FeaturedOfferProps> = ({
             </div>
           )}
           <img 
+            key={`img-${offer.id}`}
             src={offer.imageUrl || 'https://picsum.photos/800/800?meat'} 
             alt={offer.name}
-            className="w-full h-full object-cover transform scale-105"
+            className="w-full h-full object-cover transform scale-105 transition-opacity duration-1000"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full animate-shine pointer-events-none"></div>
         </div>
         
-        {/* Selo de Preço Flutuante */}
-        <div className="absolute -bottom-10 -right-10 z-20 bg-red-600 text-white p-10 rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(220,38,38,0.5)] border-4 border-white animate-float min-w-[320px]">
-          <div className="flex justify-between items-start mb-2">
-             <span className="text-2xl font-bold uppercase leading-none opacity-90">{badgeText}</span>
+        {/* Selo de Preço Flutuante com Animação de IMPACTO */}
+        <div 
+          key={`price-tag-${offer.id}`}
+          className="absolute -bottom-10 -right-10 z-20 bg-red-600 text-white p-10 rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(220,38,38,0.5)] border-4 border-white min-w-[320px] animate-price-impact"
+        >
+          <div className="flex justify-between items-start mb-2 overflow-hidden">
+             <span className="text-2xl font-bold uppercase leading-none opacity-90 animate-title-slide">{badgeText}</span>
              
-             {/* Selo pequeno de Oferta (Apenas se parceiros estiverem ATIVOS) */}
              {isPartnersEnabled && (
-                <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-tighter border-2 border-black/10 shadow-sm animate-pulse-slow ${isSale ? 'bg-yellow-400 text-black' : 'bg-white text-red-600'}`}>
+                <span 
+                  className={`px-3 py-1 rounded-lg text-xs font-black uppercase tracking-tighter border-2 border-black/10 shadow-sm animate-stamp-pop ${isSale ? 'bg-yellow-400 text-black' : 'bg-white text-red-600'}`}
+                >
                    {stampText}
                 </span>
              )}
@@ -89,19 +97,24 @@ const FeaturedOffer: React.FC<FeaturedOfferProps> = ({
           
           <div className="flex items-start">
             <span className="text-3xl font-bold mt-2 mr-1">R$</span>
-            <span className="text-9xl font-black font-oswald leading-none tracking-tighter">
-              {Math.floor(displayPrice)}
-            </span>
-            <div className="flex flex-col ml-1">
-               <span className="text-4xl font-black mt-1">,{(displayPrice % 1).toFixed(2).substring(2)}</span>
-               <span className="text-2xl font-black uppercase opacity-60 italic leading-none">{offer.unit}</span>
+            <div className="flex flex-row items-baseline">
+              <span className="text-9xl font-black font-oswald leading-none tracking-tighter drop-shadow-xl">
+                {Math.floor(displayPrice)}
+              </span>
+              <div className="flex flex-col ml-1">
+                 <span className="text-4xl font-black mt-1">,{(displayPrice % 1).toFixed(2).substring(2)}</span>
+                 <span className="text-2xl font-black uppercase opacity-60 italic leading-none">{offer.unit}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Nome do Produto */}
-      <div className={`z-10 relative transition-all duration-500 ${isPartnersEnabled ? 'mt-8' : ''}`}>
+      {/* Nome do Produto com Animação de Título */}
+      <div 
+        key={`product-name-${offer.id}`}
+        className={`z-10 relative transition-all duration-500 animate-title-slide ${isPartnersEnabled ? 'mt-8' : ''}`}
+      >
         <h1 className="text-8xl font-black text-white uppercase text-center font-oswald tracking-tighter leading-none mb-4 drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)]">
            <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-zinc-200 to-zinc-400">
              {offer.name}
@@ -109,7 +122,11 @@ const FeaturedOffer: React.FC<FeaturedOfferProps> = ({
         </h1>
       </div>
       
-      <p className="z-10 text-red-500 text-3xl font-bold uppercase tracking-[0.3em] text-center italic drop-shadow-md">
+      <p 
+        key={`product-desc-${offer.id}`}
+        className="z-10 text-red-500 text-3xl font-bold uppercase tracking-[0.3em] text-center italic drop-shadow-md animate-title-slide" 
+        style={{ animationDelay: '0.15s' }}
+      >
         {isSale ? 'QUALIDADE PREMIUM' : 'QUALIDADE GARANTIDA'}
       </p>
     </div>

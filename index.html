@@ -49,9 +49,44 @@
         0%, 100% { filter: drop-shadow(0 0 20px rgba(220, 38, 38, 0.4)); }
         50% { filter: drop-shadow(0 0 50px rgba(220, 38, 38, 0.8)); }
       }
-      @keyframes spin360 {
-        from { transform: scale(var(--base-scale)) rotate(var(--base-rotation)); }
-        to { transform: scale(var(--base-scale)) rotate(calc(var(--base-rotation) + 360deg)); }
+      
+      /* Animação de Impacto Premium para o Preço */
+      @keyframes price-impact {
+        0% { 
+          opacity: 0; 
+          transform: scale(0.3) rotate(-10deg); 
+          filter: blur(20px) brightness(2);
+        }
+        60% { 
+          transform: scale(1.15) rotate(2deg); 
+          filter: blur(0px) brightness(1.5);
+        }
+        100% { 
+          opacity: 1; 
+          transform: scale(1) rotate(0deg); 
+          filter: blur(0px) brightness(1);
+        }
+      }
+
+      @keyframes title-slide-in {
+        0% { opacity: 0; transform: translateY(30px); filter: blur(10px); }
+        100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+      }
+
+      @keyframes stamp-pop {
+        0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+        70% { transform: scale(1.2) rotate(5deg); }
+        100% { transform: scale(1) rotate(-2deg); opacity: 1; }
+      }
+
+      .animate-price-impact {
+        animation: price-impact 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+      .animate-title-slide {
+        animation: title-slide-in 0.8s ease-out forwards;
+      }
+      .animate-stamp-pop {
+        animation: stamp-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
       }
       .animate-scroll {
         animation: scroll 30s linear infinite;
@@ -88,7 +123,6 @@
         display: none;
       }
       
-      /* Oculta UI de navegação no Android Chrome quando em modo standalone */
       :fullscreen { background-color: black; }
       :-webkit-full-screen { background-color: black; }
     </style>
@@ -106,7 +140,6 @@
   <body>
     <div id="root"></div>
     <script>
-      // Registro do Service Worker para suporte PWA/Offline
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed:', err));
