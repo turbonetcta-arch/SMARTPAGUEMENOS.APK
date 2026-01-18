@@ -45,7 +45,7 @@ const App: React.FC = () => {
   const [activeOfferIndex, setActiveOfferIndex] = useState(0);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isHortifrutiEnabled, setIsHortifrutiEnabled] = useState(true);
-  const [isGeneratingArt, setIsGeneratingArt] = useState(false);
+  const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
   
   const [theme, setTheme] = useState<ThemeSettings>({
     primary: '#b91c1c',
@@ -70,7 +70,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('remote') === 'true') setIsRemoteMode(true);
+    if (params.get('remote') === 'true') {
+      setIsRemoteMode(true);
+    }
 
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsTvMode(true);
@@ -100,22 +102,6 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('smart_pague_menos_products', JSON.stringify(products));
   }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem('smart_pague_menos_scroll_speed', scrollSpeed.toString());
-  }, [scrollSpeed]);
-
-  useEffect(() => {
-    localStorage.setItem('smart_pague_menos_partners', JSON.stringify(partners));
-  }, [partners]);
-
-  useEffect(() => {
-    localStorage.setItem('smart_pague_menos_partners_enabled', isPartnersEnabled.toString());
-  }, [isPartnersEnabled]);
-
-  useEffect(() => {
-    localStorage.setItem('smart_pague_menos_partner_size', partnerNameSize.toString());
-  }, [partnerNameSize]);
 
   const handleUserActivity = () => {
     if (isRemoteMode) return;
@@ -197,21 +183,31 @@ const App: React.FC = () => {
     }
   };
 
-  const handleGenerateOfferArt = async () => {
-    const currentOffer = displayOffers[activeOfferIndex % displayOffers.length];
-    if (!currentOffer || isGeneratingArt) return;
+  const handleGenerateArt = async (product: Product, style: 'photo' | 'ad' = 'ad') => {
+    if (generatingIds.has(product.id)) return;
 
-    setIsGeneratingArt(true);
+    setGeneratingIds(prev => new Set(prev).add(product.id));
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      let visualFocus = currentOffer.category === Category.FRUTAS 
-        ? "extremely juicy fruits, glistening with fresh dew, vibrant bursting colors" 
-        : "succulent premium meat, rich marbling, glistening texture, gourmet presentation";
       
-      const prompt = `Hyper-realistic professional digital signage advertisement for ${currentOffer.name}. ${visualFocus}. Cinematic lighting, luxury market style, 8k detail.`;
+      let contextPrompt = "";
+      if (style === 'ad') {
+        if (product.category === Category.BOVINOS || product.category === Category.ESPECIAIS) {
+          contextPrompt = `Professional cinematic advertising for ${product.name} beef. High-end gourmet composition on a dark slate background with dramatic rim lighting. Fresh herbs like rosemary, scattered sea salt, and a sharp butcher's knife beside it. Rich red textures and white marbling. 8k resolution, ultra-detailed food styling. NO TEXT.`;
+        } else if (product.category === Category.FRUTAS) {
+          contextPrompt = `High-end luxury supermarket advertisement for ${product.name}. The product is center stage in a rustic wicker basket, covered in glistening dew drops. Sunlight streaming through orchard trees in the background. Vibrant, high-contrast, professional advertising photography. 8k resolution. NO TEXT.`;
+        } else if (product.category === Category.BEBIDAS) {
+          contextPrompt = `Explosive cold beverage advertisement for ${product.name}. The bottle is encased in a thin layer of ice crystals, set against a dynamic splash of frozen water and ice cubes. Electric blue lighting, cinematic atmosphere, extreme cold sensory appeal. 8k resolution. NO TEXT.`;
+        } else {
+          contextPrompt = `Luxury retail advertisement for ${product.name}. Premium studio lighting, minimalist composition, highly appetizing presentation with professional props. 8k resolution, cinematic quality. NO TEXT.`;
+        }
+      } else {
+        contextPrompt = `Hyper-realistic professional studio product photography of ${product.name}. Bright clean lighting, white minimalist background, super sharp focus on the product's natural texture and freshness. 8k resolution. NO TEXT.`;
+      }
+
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: prompt }] },
+        contents: { parts: [{ text: contextPrompt }] },
         config: { imageConfig: { aspectRatio: "1:1" } },
       });
 
@@ -224,37 +220,66 @@ const App: React.FC = () => {
           }
         }
       }
-      if (generatedImageUrl) setProducts(prev => prev.map(p => p.id === currentOffer.id ? { ...p, imageUrl: generatedImageUrl } : p));
+      if (generatedImageUrl) {
+        setProducts(prev => prev.map(p => p.id === product.id ? { ...p, imageUrl: generatedImageUrl } : p));
+      }
     } catch (error) {
       console.error('Art Generation Error:', error);
     } finally {
-      setIsGeneratingArt(false);
+      setGeneratingIds(prev => {
+        const next = new Set(prev);
+        next.delete(product.id);
+        return next;
+      });
     }
+  };
+
+  // OBSERVAÇÃO AUTOMÁTICA: Gera imagens para qualquer oferta sem imagem
+  useEffect(() => {
+    const missingArtOffers = products.filter(p => p.isOffer && !p.imageUrl && !generatingIds.has(p.id));
+    if (missingArtOffers.length > 0) {
+      // Processa um por um com um pequeno intervalo para não estourar rate limit inicial
+      missingArtOffers.forEach((product, index) => {
+        setTimeout(() => {
+          handleGenerateArt(product, 'ad');
+        }, index * 2000);
+      });
+    }
+  }, [products]); // Monitora mudanças na lista de produtos
+
+  const toggleOffer = (id: string) => {
+    setProducts(prev => prev.map(item => item.id === id ? { ...item, isOffer: !item.isOffer } : item));
+  };
+
+  const bulkToggleOffers = (off: boolean) => {
+    setProducts(prev => prev.map(item => ({...item, isOffer: off})));
+  };
+
+  const updatePrice = (id: string, price: number) => {
+    setProducts(prev => prev.map(item => item.id === id ? {...item, price} : item));
   };
 
   if (isRemoteMode) {
     return (
       <RemoteControl 
-        products={products} 
+        products={products}
         scrollSpeed={scrollSpeed}
         isPartnersEnabled={isPartnersEnabled}
         onTogglePartners={() => setIsPartnersEnabled(!isPartnersEnabled)}
         onUpdateScrollSpeed={setScrollSpeed}
-        onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))}
-        onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))}
+        onUpdatePrice={updatePrice}
+        onToggleOffer={toggleOffer}
       />
     );
   }
 
-  const finalScaleX = scaleX + zoomOffset;
-  const finalScaleY = scaleY + zoomOffset;
-  const baseWidth = isPortraitMode ? 1080 : 1920;
-  const baseHeight = isPortraitMode ? 1920 : 1080;
+  const currentOffer = displayOffers[activeOfferIndex % displayOffers.length];
+  const isCurrentlyGenerating = currentOffer ? generatingIds.has(currentOffer.id) : false;
 
   const appStyle = {
-    width: `${baseWidth}px`,
-    height: `${baseHeight}px`,
-    transform: `translate(-50%, -50%) scale(${finalScaleX}, ${finalScaleY}) rotate(${rotation}deg)`,
+    width: `${isPortraitMode ? 1080 : 1920}px`,
+    height: `${isPortraitMode ? 1920 : 1080}px`,
+    transform: `translate(-50%, -50%) scale(${scaleX + zoomOffset}, ${scaleY + zoomOffset}) rotate(${rotation}deg)`,
     transformOrigin: 'center center',
     '--primary-color': theme.primary,
     '--accent-color': theme.accent,
@@ -291,21 +316,15 @@ const App: React.FC = () => {
             <PriceList products={products} currentCategory={currentCategory} scrollSpeed={scrollSpeed} />
           </div>
           <div className={`${isPortraitMode ? 'w-full h-[55%]' : 'w-[50%] h-full'} relative overflow-hidden`}>
-            {displayOffers.length > 0 && (
+            {currentOffer && (
               <FeaturedOffer 
-                offer={displayOffers[activeOfferIndex % displayOffers.length]} 
-                isGenerating={isGeneratingArt} 
-                onGenerateArt={handleGenerateOfferArt} 
+                offer={currentOffer} 
+                isGenerating={isCurrentlyGenerating} 
+                onGenerateArt={(style) => handleGenerateArt(currentOffer, style)} 
                 showControls={showControls} 
                 isPartnersEnabled={isPartnersEnabled}
               />
             )}
-            <div className={`absolute top-6 right-6 flex items-center gap-4 transition-opacity duration-1000 ${isTvMode ? 'opacity-100' : 'opacity-0'}`}>
-               <div className="bg-black/40 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-3">
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_rgba(220,38,38,1)]"></div><span className="text-[10px] font-black text-white/90 uppercase tracking-widest">AO VIVO</span></div>
-                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">FHD 1080p</span>
-               </div>
-            </div>
           </div>
         </main>
 
@@ -319,12 +338,7 @@ const App: React.FC = () => {
                       <div className="h-24 w-auto flex items-center justify-center p-3 bg-white rounded-3xl shadow-[0_0_20px_rgba(255,255,255,0.2)]">
                         <img src={partner.imageUrl} alt={partner.name} className="h-full w-auto object-contain" />
                       </div>
-                      <span 
-                        className="text-white font-black uppercase tracking-tighter drop-shadow-[0_4px_15px_rgba(0,0,0,0.9)]"
-                        style={{ fontSize: `${partnerNameSize}px` }}
-                      >
-                        {partner.name}
-                      </span>
+                      <span className="text-white font-black uppercase tracking-tighter drop-shadow-[0_4px_15px_rgba(0,0,0,0.9)]" style={{ fontSize: `${partnerNameSize}px` }}>{partner.name}</span>
                     </div>
                   ))}
                 </React.Fragment>
@@ -378,15 +392,17 @@ const App: React.FC = () => {
           onToggleTvMode={toggleFullscreen} 
           onUpdateTheme={setTheme} 
           onClose={() => setIsAdminOpen(false)} 
-          onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))} 
+          onUpdatePrice={updatePrice} 
           onUpdateImage={(id, img) => setProducts(prev => prev.map(item => item.id === id ? {...item, imageUrl: img} : item))} 
-          onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))} 
-          onBulkToggleOffers={(off) => setProducts(prev => prev.map(item => ({...item, isOffer: off})))} 
+          onToggleOffer={toggleOffer} 
+          onBulkToggleOffers={bulkToggleOffers} 
           onAddProduct={(p) => setProducts(prev => [...prev, p])} 
           onRotate90={() => setRotation(prev => (prev + 90) % 360)} 
           onSpin360={() => { setIsSpinning(true); setTimeout(() => setIsSpinning(false), 1200); }} 
           currentRotation={rotation} 
-          isSpinning={isSpinning} 
+          isSpinning={isSpinning}
+          onManualGenerateArt={handleGenerateArt}
+          generatingIds={generatingIds}
         />
       )}
     </div>

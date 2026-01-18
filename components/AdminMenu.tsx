@@ -1,7 +1,6 @@
 
 import React, { useState, useRef } from 'react';
 import { Product, Category, ThemeSettings, Partner } from '../types';
-import { GoogleGenAI } from "@google/genai";
 
 interface AdminMenuProps {
   products: Product[];
@@ -33,14 +32,14 @@ interface AdminMenuProps {
   onSpin360: () => void;
   currentRotation: number;
   isSpinning: boolean;
+  onManualGenerateArt: (product: Product, style: 'photo' | 'ad') => Promise<void>;
+  generatingIds: Set<string>;
 }
 
 const AdminMenu: React.FC<AdminMenuProps> = ({ 
   products, 
   theme,
   isTvMode,
-  zoomOffset,
-  fitMode,
   scrollSpeed,
   partners,
   isPartnersEnabled,
@@ -50,24 +49,22 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
   onTogglePartners,
   onUpdateScrollSpeed,
   onUpdateFitMode,
-  onUpdateZoom,
+  fitMode,
   isHortifrutiEnabled,
   onToggleHortifruti,
   onToggleTvMode,
   onUpdateTheme,
   onClose, 
   onUpdatePrice, 
-  onUpdateImage, 
   onToggleOffer, 
   onBulkToggleOffers,
   onAddProduct,
   onRotate90,
-  onSpin360,
   currentRotation,
-  isSpinning
+  onManualGenerateArt,
+  generatingIds
 }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'style' | 'remote' | 'partners'>('products');
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isAddingPartner, setIsAddingPartner] = useState(false);
   
@@ -76,7 +73,6 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
   const [newProductUnit, setNewProductUnit] = useState('kg');
   const [newProductCategory, setNewProductCategory] = useState<Category>(Category.BOVINOS);
   const [newProductIsOffer, setNewProductIsOffer] = useState(false);
-  const [autoGenerateImage, setAutoGenerateImage] = useState(true);
 
   const [newPartnerName, setNewPartnerName] = useState('');
   const [newPartnerUrl, setNewPartnerUrl] = useState('');
@@ -86,47 +82,6 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
 
   const remoteUrl = `${window.location.origin}${window.location.pathname}?remote=true`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(remoteUrl)}&color=ffffff&bgcolor=000000`;
-
-  const handleGenerateArt = async (product: Product, type: 'photo' | 'ad' = 'photo'): Promise<string | null> => {
-    setGeneratingId(product.id);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const flavorFocus = product.category === Category.FRUTAS 
-        ? "extremely juicy, glistening with freshness, vibrant colors, mouth-watering ripeness" 
-        : "succulent high-quality meat, fresh cut, beautiful marbling, appetizing texture, natural vibrant colors";
-
-      const prompt = type === 'photo' 
-        ? `Ultra-realistic professional food photography of ${product.name}. ${flavorFocus}. Isolated on elegant clean background, cinematic gourmet lighting, high sensory appeal.`
-        : `High-end premium digital signage advertisement for ${product.name}. Focus on extreme palate appeal, ${flavorFocus}, luxury mood, dramatic lighting, subtle particle effects, 8k detail. Most delicious presentation possible.`;
-      
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: prompt }] },
-        config: { imageConfig: { aspectRatio: "1:1" } },
-      });
-
-      let generatedImageUrl = '';
-      if (response.candidates?.[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            generatedImageUrl = `data:image/png;base64,${part.inlineData.data}`;
-            break;
-          }
-        }
-      }
-
-      if (generatedImageUrl) {
-        onUpdateImage(product.id, generatedImageUrl);
-        return generatedImageUrl;
-      }
-      return null;
-    } catch (error: any) {
-      console.error('API Error:', error);
-      return null;
-    } finally {
-      setGeneratingId(null);
-    }
-  };
 
   const handleAddProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,12 +94,10 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
       unit: newProductUnit,
       category: newProductCategory,
       isOffer: newProductIsOffer,
-      offerPrice: newProductIsOffer ? parseFloat(newProductPrice) * 0.85 : undefined,
     };
 
     onAddProduct(newProduct);
     setIsAddingProduct(false);
-    if (autoGenerateImage) setTimeout(() => handleGenerateArt(newProduct), 500);
     setNewProductName('');
     setNewProductPrice('');
   };
@@ -238,34 +191,37 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
 
             <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-black/30">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map(product => (
-                  <div key={product.id} className="bg-zinc-900 border border-white/5 p-6 rounded-[2.5rem] relative group hover:border-white/20 transition-colors">
-                    <div className="flex gap-4">
-                      <div className="relative">
-                        <img src={product.imageUrl || 'https://via.placeholder.com/150'} className="w-20 h-20 rounded-2xl object-cover shadow-2xl" />
-                        {generatingId === product.id && (
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-2xl">
-                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                {products.map(product => {
+                  const isGenerating = generatingIds.has(product.id);
+                  return (
+                    <div key={product.id} className="bg-zinc-900 border border-white/5 p-6 rounded-[2.5rem] relative group hover:border-white/20 transition-colors">
+                      <div className="flex gap-4">
+                        <div className="relative">
+                          <img src={product.imageUrl || 'https://via.placeholder.com/150'} className={`w-20 h-20 rounded-2xl object-cover shadow-2xl transition-all ${isGenerating ? 'blur-sm opacity-50' : ''}`} />
+                          {isGenerating && (
+                            <div className="absolute inset-0 flex items-center justify-center rounded-2xl">
+                               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-white font-black font-oswald uppercase truncate">{product.name}</h3>
+                          <div className="flex items-center gap-2 mt-2">
+                             <span className="text-[10px] font-bold text-zinc-500 uppercase">R$</span>
+                             <input type="number" step="0.01" value={product.price} onChange={(e) => onUpdatePrice(product.id, parseFloat(e.target.value))} className="bg-black/50 text-white font-black px-2 py-1 rounded-lg w-full outline-none focus:ring-1 ring-yellow-500 transition-all" />
                           </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-white font-black font-oswald uppercase truncate">{product.name}</h3>
-                        <div className="flex items-center gap-2 mt-2">
-                           <span className="text-[10px] font-bold text-zinc-500 uppercase">R$</span>
-                           <input type="number" step="0.01" value={product.price} onChange={(e) => onUpdatePrice(product.id, parseFloat(e.target.value))} className="bg-black/50 text-white font-black px-2 py-1 rounded-lg w-full outline-none focus:ring-1 ring-yellow-500 transition-all" />
                         </div>
                       </div>
+                      <div className="mt-6 flex flex-wrap gap-2">
+                         <button onClick={() => onManualGenerateArt(product, 'photo')} disabled={isGenerating} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white text-[9px] font-black rounded-xl uppercase transition-all disabled:opacity-30">Limpar Foto</button>
+                         <button onClick={() => onManualGenerateArt(product, 'ad')} disabled={isGenerating} className="flex-1 py-3 bg-gradient-to-r from-yellow-600 to-red-600 text-white text-[9px] font-black rounded-xl uppercase shadow-lg shadow-red-900/20 active:scale-95 transition-all disabled:opacity-30">Arte IA Premium</button>
+                         <button onClick={() => onToggleOffer(product.id)} className={`w-full py-3 text-[10px] font-black rounded-xl uppercase transition-all ${product.isOffer ? 'bg-yellow-500 text-black' : 'bg-zinc-800 text-white/40'}`}>
+                          {product.isOffer ? 'Oferta Ativa' : 'Promover à Oferta'}
+                         </button>
+                      </div>
                     </div>
-                    <div className="mt-6 flex flex-wrap gap-2">
-                       <button onClick={() => handleGenerateArt(product, 'photo')} disabled={generatingId !== null} className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-white text-[9px] font-black rounded-xl uppercase transition-all">Limpar Foto</button>
-                       <button onClick={() => handleGenerateArt(product, 'ad')} disabled={generatingId !== null} className="flex-1 py-3 bg-gradient-to-r from-yellow-600 to-red-600 text-white text-[9px] font-black rounded-xl uppercase shadow-lg shadow-red-900/20 active:scale-95 transition-all">Arte IA Premium</button>
-                       <button onClick={() => onToggleOffer(product.id)} className={`w-full py-3 text-[10px] font-black rounded-xl uppercase transition-all ${product.isOffer ? 'bg-yellow-500 text-black' : 'bg-zinc-800 text-white/40'}`}>
-                        {product.isOffer ? 'Oferta Ativa' : 'Promover à Oferta'}
-                       </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </>
