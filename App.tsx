@@ -30,6 +30,11 @@ const App: React.FC = () => {
     return saved ? saved === 'true' : true;
   });
 
+  const [partnerNameSize, setPartnerNameSize] = useState(() => {
+    const saved = localStorage.getItem('smart_pague_menos_partner_size');
+    return saved ? parseInt(saved) : 70;
+  });
+
   const [scrollSpeed, setScrollSpeed] = useState(() => {
     const saved = localStorage.getItem('smart_pague_menos_scroll_speed');
     return saved ? parseInt(saved) : 30;
@@ -67,6 +72,10 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('remote') === 'true') setIsRemoteMode(true);
 
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsTvMode(true);
+    }
+
     const handleStorageChange = () => {
       const savedProducts = localStorage.getItem('smart_pague_menos_products');
       if (savedProducts) setProducts(JSON.parse(savedProducts));
@@ -79,6 +88,9 @@ const App: React.FC = () => {
 
       const savedPartnersEnabled = localStorage.getItem('smart_pague_menos_partners_enabled');
       if (savedPartnersEnabled) setIsPartnersEnabled(savedPartnersEnabled === 'true');
+
+      const savedSize = localStorage.getItem('smart_pague_menos_partner_size');
+      if (savedSize) setPartnerNameSize(parseInt(savedSize));
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -101,6 +113,10 @@ const App: React.FC = () => {
     localStorage.setItem('smart_pague_menos_partners_enabled', isPartnersEnabled.toString());
   }, [isPartnersEnabled]);
 
+  useEffect(() => {
+    localStorage.setItem('smart_pague_menos_partner_size', partnerNameSize.toString());
+  }, [partnerNameSize]);
+
   const handleUserActivity = () => {
     if (isRemoteMode) return;
     setShowControls(true);
@@ -122,7 +138,6 @@ const App: React.FC = () => {
   }, [isHortifrutiEnabled]);
 
   const currentCategory = activeCategories[currentCategoryIndex % activeCategories.length];
-  
   const actualOffers = products.filter(p => p.isOffer);
   const categoryProducts = products.filter(p => p.category === currentCategory);
   const displayOffers = actualOffers.length > 0 ? actualOffers : categoryProducts;
@@ -176,7 +191,7 @@ const App: React.FC = () => {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsTvMode(true));
+      document.documentElement.requestFullscreen().then(() => setIsTvMode(true)).catch(() => setIsTvMode(true));
     } else {
       document.exitFullscreen().then(() => setIsTvMode(false));
     }
@@ -277,7 +292,13 @@ const App: React.FC = () => {
           </div>
           <div className={`${isPortraitMode ? 'w-full h-[55%]' : 'w-[50%] h-full'} relative overflow-hidden`}>
             {displayOffers.length > 0 && (
-              <FeaturedOffer offer={displayOffers[activeOfferIndex % displayOffers.length]} isGenerating={isGeneratingArt} onGenerateArt={handleGenerateOfferArt} showControls={showControls} />
+              <FeaturedOffer 
+                offer={displayOffers[activeOfferIndex % displayOffers.length]} 
+                isGenerating={isGeneratingArt} 
+                onGenerateArt={handleGenerateOfferArt} 
+                showControls={showControls} 
+                isPartnersEnabled={isPartnersEnabled}
+              />
             )}
             <div className={`absolute top-6 right-6 flex items-center gap-4 transition-opacity duration-1000 ${isTvMode ? 'opacity-100' : 'opacity-0'}`}>
                <div className="bg-black/40 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-3">
@@ -298,7 +319,10 @@ const App: React.FC = () => {
                       <div className="h-24 w-auto flex items-center justify-center p-3 bg-white rounded-3xl shadow-[0_0_20px_rgba(255,255,255,0.2)]">
                         <img src={partner.imageUrl} alt={partner.name} className="h-full w-auto object-contain" />
                       </div>
-                      <span className="text-white font-black text-7xl uppercase tracking-tighter drop-shadow-[0_4px_15px_rgba(0,0,0,0.9)]">
+                      <span 
+                        className="text-white font-black uppercase tracking-tighter drop-shadow-[0_4px_15px_rgba(0,0,0,0.9)]"
+                        style={{ fontSize: `${partnerNameSize}px` }}
+                      >
                         {partner.name}
                       </span>
                     </div>
@@ -333,7 +357,37 @@ const App: React.FC = () => {
       </div>
 
       {isAdminOpen && (
-        <AdminMenu products={products} theme={theme} isTvMode={isTvMode} zoomOffset={zoomOffset} fitMode={fitMode} scrollSpeed={scrollSpeed} partners={partners} isPartnersEnabled={isPartnersEnabled} onUpdatePartners={setPartners} onTogglePartners={() => setIsPartnersEnabled(!isPartnersEnabled)} onUpdateScrollSpeed={setScrollSpeed} onUpdateFitMode={setFitMode} onUpdateZoom={setZoomOffset} isHortifrutiEnabled={isHortifrutiEnabled} onToggleHortifruti={() => setIsHortifrutiEnabled(!isHortifrutiEnabled)} onToggleTvMode={toggleFullscreen} onUpdateTheme={setTheme} onClose={() => setIsAdminOpen(false)} onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))} onUpdateImage={(id, img) => setProducts(prev => prev.map(item => item.id === id ? {...item, imageUrl: img} : item))} onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))} onBulkToggleOffers={(off) => setProducts(prev => prev.map(item => ({...item, isOffer: off})))} onAddProduct={(p) => setProducts(prev => [...prev, p])} onRotate90={() => setRotation(prev => (prev + 90) % 360)} onSpin360={() => { setIsSpinning(true); setTimeout(() => setIsSpinning(false), 1200); }} currentRotation={rotation} isSpinning={isSpinning} />
+        <AdminMenu 
+          products={products} 
+          theme={theme} 
+          isTvMode={isTvMode} 
+          zoomOffset={zoomOffset} 
+          fitMode={fitMode} 
+          scrollSpeed={scrollSpeed} 
+          partners={partners} 
+          isPartnersEnabled={isPartnersEnabled} 
+          partnerNameSize={partnerNameSize}
+          onUpdatePartnerNameSize={setPartnerNameSize}
+          onUpdatePartners={setPartners} 
+          onTogglePartners={() => setIsPartnersEnabled(!isPartnersEnabled)} 
+          onUpdateScrollSpeed={setScrollSpeed} 
+          onUpdateFitMode={setFitMode} 
+          onUpdateZoom={setZoomOffset} 
+          isHortifrutiEnabled={isHortifrutiEnabled} 
+          onToggleHortifruti={() => setIsHortifrutiEnabled(!isHortifrutiEnabled)} 
+          onToggleTvMode={toggleFullscreen} 
+          onUpdateTheme={setTheme} 
+          onClose={() => setIsAdminOpen(false)} 
+          onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))} 
+          onUpdateImage={(id, img) => setProducts(prev => prev.map(item => item.id === id ? {...item, imageUrl: img} : item))} 
+          onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))} 
+          onBulkToggleOffers={(off) => setProducts(prev => prev.map(item => ({...item, isOffer: off})))} 
+          onAddProduct={(p) => setProducts(prev => [...prev, p])} 
+          onRotate90={() => setRotation(prev => (prev + 90) % 360)} 
+          onSpin360={() => { setIsSpinning(true); setTimeout(() => setIsSpinning(false), 1200); }} 
+          currentRotation={rotation} 
+          isSpinning={isSpinning} 
+        />
       )}
     </div>
   );

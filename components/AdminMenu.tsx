@@ -12,6 +12,8 @@ interface AdminMenuProps {
   scrollSpeed: number;
   partners: Partner[];
   isPartnersEnabled: boolean;
+  partnerNameSize: number;
+  onUpdatePartnerNameSize: (size: number) => void;
   onUpdatePartners: (partners: Partner[]) => void;
   onTogglePartners: () => void;
   onUpdateScrollSpeed: (speed: number) => void;
@@ -42,6 +44,8 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
   scrollSpeed,
   partners,
   isPartnersEnabled,
+  partnerNameSize,
+  onUpdatePartnerNameSize,
   onUpdatePartners,
   onTogglePartners,
   onUpdateScrollSpeed,
@@ -267,12 +271,10 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
           </>
         ) : activeTab === 'style' ? (
           <div className="flex-1 p-12 bg-black/30 overflow-y-auto custom-scrollbar">
-            {/* Mesma estrutura de estilo anterior */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
               <div className="space-y-8">
                 <h3 className="text-white font-black font-oswald text-2xl uppercase tracking-widest border-l-4 border-yellow-500 pl-4">Ajuste de Tela</h3>
                 <div className="p-8 bg-zinc-800/40 rounded-3xl border border-white/5 flex flex-col gap-6">
-                  {/* ... controles de zoom, fit e scroll ... */}
                   <div className="flex flex-col gap-3">
                     <span className="text-white font-bold uppercase text-[10px] tracking-widest opacity-60">Modo de Exibição</span>
                     <div className="flex bg-black p-1 rounded-xl">
@@ -296,7 +298,6 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
               </div>
               <div className="space-y-8">
                 <h3 className="text-white font-black font-oswald text-2xl uppercase tracking-widest border-l-4 border-red-600 pl-4">Cores do Tema</h3>
-                {/* ... seletores de cores ... */}
                 <div className="flex items-center justify-between p-6 bg-zinc-800/40 rounded-3xl border border-white/5">
                   <span className="text-white font-bold uppercase text-xs tracking-widest">Fundo</span>
                   <input type="color" value={theme.background} onChange={(e) => updateColor('background', e.target.value)} className="w-14 h-14 rounded-full bg-transparent cursor-pointer border-4 border-white/10" />
@@ -306,7 +307,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
           </div>
         ) : activeTab === 'partners' ? (
           <>
-            <div className="px-8 py-6 bg-zinc-800/30 flex items-center justify-between border-b border-white/5">
+            <div className="px-8 py-6 bg-zinc-800/30 flex items-center justify-between border-b border-white/5 overflow-x-auto whitespace-nowrap gap-6">
               <div className="flex gap-4 items-center">
                  <button 
                   onClick={onTogglePartners} 
@@ -315,6 +316,22 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                   {isPartnersEnabled ? 'PARCEIROS: VISÍVEIS' : 'PARCEIROS: OCULTOS'}
                 </button>
               </div>
+
+              <div className="flex-1 max-w-md px-6 py-2 bg-black/40 rounded-2xl border border-white/5 flex flex-col gap-2">
+                 <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">Tamanho dos Nomes</span>
+                    <span className="text-yellow-500 font-black font-oswald">{partnerNameSize}px</span>
+                 </div>
+                 <input 
+                  type="range" 
+                  min="20" 
+                  max="200" 
+                  value={partnerNameSize} 
+                  onChange={(e) => onUpdatePartnerNameSize(parseInt(e.target.value))} 
+                  className="w-full accent-yellow-500" 
+                />
+              </div>
+
               <button onClick={() => setIsAddingPartner(true)} className="px-6 py-3 bg-yellow-500 text-black font-black text-xs uppercase rounded-xl">Adicionar Marca</button>
             </div>
             
@@ -349,15 +366,11 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                   accept="image/*"
                   onChange={(e) => editingPartnerId && handleEditPartnerFile(e, editingPartnerId)}
                  />
-                 {partners.length === 0 && (
-                   <div className="col-span-full py-20 text-center text-zinc-600 font-bold uppercase tracking-widest">Nenhum parceiro cadastrado</div>
-                 )}
                </div>
             </div>
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-12 bg-black/50 overflow-y-auto custom-scrollbar">
-            {/* Conteúdo do Controle Remoto */}
             <div className="max-w-xl w-full text-center space-y-12">
                <div className="space-y-4">
                  <h3 className="text-5xl font-black text-white font-oswald uppercase tracking-tighter">CONTROLE PELO CELULAR</h3>
@@ -372,7 +385,6 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
           </div>
         )}
 
-        {/* Modal Novo Parceiro */}
         {isAddingPartner && (
           <div className="fixed inset-0 z-[400] bg-black/95 flex items-center justify-center p-6 backdrop-blur-md">
             <div className="bg-zinc-900 border border-white/10 p-12 rounded-[3.5rem] w-full max-w-xl shadow-3xl">

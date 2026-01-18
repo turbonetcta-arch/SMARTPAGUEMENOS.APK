@@ -1,10 +1,20 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Butcher Shop Digital Media</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Smart Pague Menos - Painel Digital</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pague Menos">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#b91c1c">
+    <link rel="manifest" href="metadata.json">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1139/1139982.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -13,6 +23,8 @@
         background-color: #000;
         margin: 0;
         overflow: hidden;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
       }
       .font-oswald {
         font-family: 'Oswald', sans-serif;
@@ -47,9 +59,6 @@
       .animate-scroll-vertical {
         animation: scroll-vertical 30s linear infinite;
       }
-      .animate-scroll-vertical:hover {
-        animation-play-state: paused;
-      }
       .animate-pulse-slow {
         animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       }
@@ -78,6 +87,10 @@
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
       }
+      
+      /* Oculta UI de navegação no Android Chrome quando em modo standalone */
+      :fullscreen { background-color: black; }
+      :-webkit-full-screen { background-color: black; }
     </style>
   <script type="importmap">
 {
@@ -92,5 +105,13 @@
 </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Registro do Service Worker para suporte PWA/Offline
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed:', err));
+        });
+      }
+    </script>
   </body>
 </html>
