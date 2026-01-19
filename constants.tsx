@@ -13,6 +13,7 @@ export const INITIAL_PRODUCTS: Product[] = [
   // Suinos
   { id: 's1', name: 'BISTECA SUÍNA', price: 18.99, unit: 'kg', category: Category.SUINOS },
   { id: 's2', name: 'COSTELA SUÍNA', price: 21.99, unit: 'kg', category: Category.SUINOS, isOffer: true, offerPrice: 19.90 },
+  { id: 's6', name: 'LOMBO SUÍNO', price: 30.00, unit: 'kg', category: Category.SUINOS },
 
   // Aves
   { id: 'a1', name: 'COXA E SOBRECOXA', price: 13.49, unit: 'kg', category: Category.AVES },
@@ -22,14 +23,15 @@ export const INITIAL_PRODUCTS: Product[] = [
   // Frutas
   { id: 'f1', name: 'BANANA PRATA', price: 5.99, unit: 'kg', category: Category.FRUTAS },
   { id: 'f2', name: 'MAÇÃ NACIONAL', price: 8.49, unit: 'kg', category: Category.FRUTAS, isOffer: true, offerPrice: 6.99 },
+  { id: 'f3', name: 'LARANJA PERA', price: 4.50, unit: 'kg', category: Category.FRUTAS },
   { id: 'f4', name: 'MELANCIA', price: 2.99, unit: 'kg', category: Category.FRUTAS },
 
   // Bebidas Geladas
-  { id: 'd1', name: 'COCA-COLA 2L', price: 11.99, unit: 'un', category: Category.BEBIDAS },
-  { id: 'd2', name: 'CERVEJA HEINEKEN 330ML', price: 6.49, unit: 'un', category: Category.BEBIDAS, isOffer: true, offerPrice: 5.89 },
-  { id: 'd3', name: 'SUCO DEL VALLE 1L', price: 7.99, unit: 'un', category: Category.BEBIDAS },
-  { id: 'd4', name: 'ÁGUA MINERAL 500ML', price: 2.50, unit: 'un', category: Category.BEBIDAS },
-  { id: 'd5', name: 'ENERGÉTICO MONSTER', price: 9.90, unit: 'un', category: Category.BEBIDAS, isOffer: true, offerPrice: 8.50 },
+  { id: 'dr1', name: 'CERVEJA BRAHMA LATA 350ML', price: 3.99, unit: 'un', category: Category.BEBIDAS },
+  { id: 'dr2', name: 'REFRIGERANTE COCA-COLA 2L', price: 11.49, unit: 'un', category: Category.BEBIDAS, isOffer: true, offerPrice: 9.90 },
+  { id: 'dr3', name: 'CERVEJA HEINEKEN LONG NECK', price: 7.99, unit: 'un', category: Category.BEBIDAS, isOffer: true, offerPrice: 6.99 },
+  { id: 'dr4', name: 'ÁGUA MINERAL 500ML', price: 2.50, unit: 'un', category: Category.BEBIDAS },
+  { id: 'dr5', name: 'SUCO PRATS LARANJA 900ML', price: 14.90, unit: 'un', category: Category.BEBIDAS },
 ];
 
 export const CATEGORIES_CYCLE = [

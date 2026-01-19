@@ -1,20 +1,10 @@
 
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Smart Pague Menos - Painel Digital</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Pague Menos">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#b91c1c">
-    <link rel="manifest" href="metadata.json">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1139/1139982.png">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Butcher Shop Digital Media</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -23,15 +13,13 @@
         background-color: #000;
         margin: 0;
         overflow: hidden;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
       }
       .font-oswald {
         font-family: 'Oswald', sans-serif;
       }
       @keyframes scroll {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-50%); }
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-50%); }
       }
       @keyframes scroll-vertical {
         0% { transform: translateY(0); }
@@ -49,50 +37,18 @@
         0%, 100% { filter: drop-shadow(0 0 20px rgba(220, 38, 38, 0.4)); }
         50% { filter: drop-shadow(0 0 50px rgba(220, 38, 38, 0.8)); }
       }
-      
-      /* Animação de Impacto Premium para o Preço */
-      @keyframes price-impact {
-        0% { 
-          opacity: 0; 
-          transform: scale(0.3) rotate(-10deg); 
-          filter: blur(20px) brightness(2);
-        }
-        60% { 
-          transform: scale(1.15) rotate(2deg); 
-          filter: blur(0px) brightness(1.5);
-        }
-        100% { 
-          opacity: 1; 
-          transform: scale(1) rotate(0deg); 
-          filter: blur(0px) brightness(1);
-        }
-      }
-
-      @keyframes title-slide-in {
-        0% { opacity: 0; transform: translateY(30px); filter: blur(10px); }
-        100% { opacity: 1; transform: translateY(0); filter: blur(0); }
-      }
-
-      @keyframes stamp-pop {
-        0% { transform: scale(0) rotate(-20deg); opacity: 0; }
-        70% { transform: scale(1.2) rotate(5deg); }
-        100% { transform: scale(1) rotate(-2deg); opacity: 1; }
-      }
-
-      .animate-price-impact {
-        animation: price-impact 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-      }
-      .animate-title-slide {
-        animation: title-slide-in 0.8s ease-out forwards;
-      }
-      .animate-stamp-pop {
-        animation: stamp-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      @keyframes spin360 {
+        from { transform: scale(var(--base-scale)) rotate(var(--base-rotation)); }
+        to { transform: scale(var(--base-scale)) rotate(calc(var(--base-rotation) + 360deg)); }
       }
       .animate-scroll {
-        animation: scroll 30s linear infinite;
+        animation: scroll 20s linear infinite;
       }
       .animate-scroll-vertical {
         animation: scroll-vertical 30s linear infinite;
+      }
+      .animate-scroll-vertical:hover {
+        animation-play-state: paused;
       }
       .animate-pulse-slow {
         animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -119,12 +75,6 @@
         background: #3f3f46;
         border-radius: 10px;
       }
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-      }
-      
-      :fullscreen { background-color: black; }
-      :-webkit-full-screen { background-color: black; }
     </style>
   <script type="importmap">
 {
