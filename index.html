@@ -33,6 +33,10 @@
         0%, 100% { transform: translateY(0) rotate(-3deg); }
         50% { transform: translateY(-15px) rotate(-1deg); }
       }
+      @keyframes zoom-price {
+        0%, 100% { transform: scale(1) rotate(-2deg); }
+        50% { transform: scale(1.15) rotate(1deg); }
+      }
       @keyframes bloom {
         0%, 100% { filter: drop-shadow(0 0 20px rgba(220, 38, 38, 0.4)); }
         50% { filter: drop-shadow(0 0 50px rgba(220, 38, 38, 0.8)); }
@@ -58,6 +62,9 @@
       }
       .animate-float {
         animation: float 5s ease-in-out infinite;
+      }
+      .animate-zoom-price {
+        animation: zoom-price 2.5s ease-in-out infinite;
       }
       .animate-bloom {
         animation: bloom 4s ease-in-out infinite;

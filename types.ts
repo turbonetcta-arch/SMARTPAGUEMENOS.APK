@@ -16,6 +16,14 @@ export interface ThemeSettings {
   panel: string;
 }
 
+export interface MediaConfig {
+  marqueeText: string;
+  logoUrl: string;
+  bgImageUrl: string;
+  slideDuration: number; // segundos por oferta
+  listScrollSpeed: number; // segundos por ciclo de rolagem da lista
+}
+
 export interface Partner {
   id: string;
   name: string;

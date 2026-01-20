@@ -73,8 +73,8 @@ const FeaturedOffer: React.FC<FeaturedOfferProps> = ({ offer, isGenerating, onGe
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full animate-shine pointer-events-none"></div>
         </div>
         
-        {/* Selo de Preço Flutuante */}
-        <div className="absolute -bottom-10 -right-10 z-20 bg-red-600 text-white p-10 rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(220,38,38,0.5)] border-4 border-white animate-float">
+        {/* Selo de Preço Flutuante e Pulsante */}
+        <div className="absolute -bottom-10 -right-10 z-20 bg-red-600 text-white p-10 rounded-[2.5rem] shadow-[0_25px_50px_-12px_rgba(220,38,38,0.5)] border-4 border-white animate-zoom-price">
           <span className="block text-2xl font-bold uppercase leading-none mb-1 opacity-90">{badgeText}</span>
           <div className="flex items-start">
             <span className="text-3xl font-bold mt-2 mr-1">R$</span>
