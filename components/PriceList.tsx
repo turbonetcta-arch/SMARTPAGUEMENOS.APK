@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Product, Category } from '../types';
 
@@ -12,9 +13,13 @@ const PriceList: React.FC<PriceListProps> = ({ products, currentCategory, scroll
   const displayProducts = [...filteredProducts, ...filteredProducts, ...filteredProducts];
   const isCold = currentCategory === Category.BEBIDAS;
 
+  const formatDecimals = (price: number) => {
+    const decimals = (price % 1).toFixed(2).split('.')[1];
+    return decimals || '00';
+  };
+
   return (
     <div className="h-full flex flex-col relative animate-flash" key={currentCategory}>
-      {/* HEADER DA LISTA */}
       <div className={`p-12 px-16 relative overflow-hidden z-20 border-b-4 border-white/10 ${isCold ? 'bg-blue-900/95' : 'bg-black/95'}`}>
         <div className="absolute inset-0 bg-gradient-to-r from-white/[0.05] to-transparent pointer-events-none"></div>
         <div className="flex items-center justify-between relative z-10">
@@ -37,7 +42,6 @@ const PriceList: React.FC<PriceListProps> = ({ products, currentCategory, scroll
         </div>
       </div>
 
-      {/* MOTOR DE SCROLL */}
       <div className="flex-1 relative overflow-hidden bg-black/60">
         <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-black z-10 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black z-10 pointer-events-none"></div>
@@ -46,45 +50,48 @@ const PriceList: React.FC<PriceListProps> = ({ products, currentCategory, scroll
           className="animate-scroll-vertical flex flex-col gap-8 p-12 px-16"
           style={{ animationDuration: `${scrollSpeed}s` }}
         >
-          {displayProducts.map((product, index) => (
-            <div 
-              key={`${product.id}-${index}`}
-              className={`group flex items-center justify-between p-12 rounded-[3.5rem] border-[4px] transition-all duration-700 ${product.isOffer ? 'bg-red-600/30 border-red-600/70 shadow-[0_0_60px_rgba(220,38,38,0.25)]' : 'bg-white/[0.04] border-white/5 shadow-2xl hover:bg-white/[0.08]'}`}
-            >
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-8">
-                  {product.isOffer && (
-                    <span className="bg-red-600 text-[11px] font-black px-5 py-1.5 rounded-xl text-white uppercase tracking-[0.3em] shadow-lg animate-pulse">OFERTA</span>
-                  )}
-                  <span className="text-[5.5rem] font-black font-oswald uppercase tracking-tighter text-white leading-none">
-                    {product.name}
-                  </span>
-                </div>
-                <div className="flex items-center gap-4 text-[11px] font-bold text-white/30 tracking-[0.6em] font-mono">
-                  <span>REF_{product.id}</span>
-                  <div className="w-2 h-2 bg-white/20 rounded-full"></div>
-                  <span>QUALIDADE_EXTRA</span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-12">
-                <div className="flex flex-col items-end -space-y-4">
-                  <span className="text-3xl font-black text-red-600 font-oswald italic">R$</span>
-                  <div className="flex items-start">
-                    <span className="text-[11rem] font-black font-oswald leading-none tracking-tighter text-white tabular-nums">
-                      {Math.floor(product.isOffer ? product.offerPrice! : product.price)}
+          {displayProducts.map((product, index) => {
+            const currentPrice = product.isOffer ? (product.offerPrice || product.price) : product.price;
+            return (
+              <div 
+                key={`${product.id}-${index}`}
+                className={`group flex items-center justify-between p-12 rounded-[3.5rem] border-[4px] transition-all duration-700 ${product.isOffer ? 'bg-red-600/30 border-red-600/70 shadow-[0_0_60px_rgba(220,38,38,0.25)]' : 'bg-white/[0.04] border-white/5 shadow-2xl hover:bg-white/[0.08]'}`}
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-8">
+                    {product.isOffer && (
+                      <span className="bg-red-600 text-[11px] font-black px-5 py-1.5 rounded-xl text-white uppercase tracking-[0.3em] shadow-lg animate-pulse">OFERTA</span>
+                    )}
+                    <span className="text-[5.5rem] font-black font-oswald uppercase tracking-tighter text-white leading-none">
+                      {product.name}
                     </span>
-                    <div className="flex flex-col ml-1.5 pt-4">
-                      <span className="text-7xl font-black font-oswald text-white/90 tabular-nums leading-none tracking-tighter">
-                        ,{( (product.isOffer ? product.offerPrice! : product.price) % 1).toFixed(2).substring(2) }
+                  </div>
+                  <div className="flex items-center gap-4 text-[11px] font-bold text-white/30 tracking-[0.6em] font-mono">
+                    <span>REF_{product.id}</span>
+                    <div className="w-2 h-2 bg-white/20 rounded-full"></div>
+                    <span>QUALIDADE_EXTRA</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-12">
+                  <div className="flex flex-col items-end -space-y-4">
+                    <span className="text-3xl font-black text-red-600 font-oswald italic">R$</span>
+                    <div className="flex items-start">
+                      <span className="text-[11rem] font-black font-oswald leading-none tracking-tighter text-white tabular-nums">
+                        {Math.floor(currentPrice)}
                       </span>
-                      <span className="text-3xl font-black text-white/20 uppercase italic mt-2 font-oswald">{product.unit}</span>
+                      <div className="flex flex-col ml-1.5 pt-4">
+                        <span className="text-7xl font-black font-oswald text-white/90 tabular-nums leading-none tracking-tighter">
+                          ,{formatDecimals(currentPrice)}
+                        </span>
+                        <span className="text-3xl font-black text-white/20 uppercase italic mt-2 font-oswald">{product.unit}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

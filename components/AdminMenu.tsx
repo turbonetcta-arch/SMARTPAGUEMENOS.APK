@@ -29,7 +29,7 @@ interface AdminMenuProps {
   isSpinning: boolean;
   onUpdateName?: (id: string, name: string) => void;
   mediaConfig: MediaConfig;
-  onUpdateMedia: (config: MediaConfig) => void;
+  onUpdateMedia: (config: MediaConfig | ((prev: MediaConfig) => MediaConfig)) => void;
 }
 
 const AdminMenu: React.FC<AdminMenuProps> = ({ 
@@ -49,8 +49,11 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
     if (file && mediaUploadType) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        if (mediaUploadType === 'logo') onUpdateMedia({ ...mediaConfig, logoUrl: reader.result as string });
-        else onUpdateMedia({ ...mediaConfig, bgImageUrl: reader.result as string });
+        const dataUrl = reader.result as string;
+        onUpdateMedia(prev => ({
+          ...prev,
+          [mediaUploadType === 'logo' ? 'logoUrl' : 'bgImageUrl']: dataUrl
+        }));
       };
       reader.readAsDataURL(file);
       setMediaUploadType(null);
@@ -62,7 +65,6 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
       <div className="bg-zinc-950 w-full max-w-7xl h-[94vh] rounded-[4rem] border-2 border-white/5 shadow-4xl flex flex-col overflow-hidden animate-fade-in relative ring-1 ring-white/10">
         <input type="file" ref={mediaFileInputRef} className="hidden" accept="image/*" onChange={handleMediaUpload} />
 
-        {/* Header Unificado */}
         <div className="p-10 border-b border-white/5 flex justify-between items-center bg-black/40">
           <div className="flex items-center gap-10">
             <div className="flex flex-col">
@@ -88,7 +90,6 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
 
         <div className="flex-1 overflow-y-auto p-12 custom-scrollbar bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.02),transparent)]">
           
-          {/* Aba de Hardware: Rotação e Monitoramento */}
           {activeTab === 'hardware' && (
             <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-8">
                <div className="grid grid-cols-2 gap-8">
@@ -114,7 +115,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                      </div>
                      <p className="text-zinc-500 text-xs font-medium leading-relaxed">Visualize o console de processamento em tempo real diretamente na tela principal.</p>
                      <button 
-                        onClick={() => onUpdateMedia({ ...mediaConfig, isNodeMode: !mediaConfig.isNodeMode })}
+                        onClick={() => onUpdateMedia(prev => ({ ...prev, isNodeMode: !prev.isNodeMode }))}
                         className={`w-full py-10 rounded-[3rem] font-black uppercase text-sm transition-all flex items-center justify-center gap-6 shadow-2xl border-[6px] border-black active:scale-95 ${mediaConfig.isNodeMode ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-500'}`}
                      >
                         {mediaConfig.isNodeMode ? 'Desativar Monitor' : 'Ativar Monitor'}
@@ -124,31 +125,29 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
             </div>
           )}
 
-          {/* Aba de Mídia: Letreiro e Imagens */}
           {activeTab === 'media' && (
             <div className="space-y-12 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-8">
                <div className="bg-white/[0.03] p-12 rounded-[4rem] border border-white/5 space-y-10">
                 <h3 className="text-4xl font-black text-white font-oswald uppercase italic">Letreiro de Rodapé</h3>
                 <textarea 
                   value={mediaConfig.marqueeText} 
-                  onChange={(e) => onUpdateMedia({ ...mediaConfig, marqueeText: e.target.value })} 
+                  onChange={(e) => onUpdateMedia(prev => ({ ...prev, marqueeText: e.target.value }))} 
                   className="w-full bg-black/40 border-4 border-white/5 p-10 rounded-[3rem] text-white font-black uppercase min-h-[220px] resize-none focus:border-amber-500 outline-none transition-all text-2xl tracking-tighter" 
                   placeholder="INSIRA AS MENSAGENS DE OFERTA..."
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-10">
-                <button onClick={() => { setMediaUploadType('logo'); mediaFileInputRef.current?.click(); }} className="bg-white/[0.02] p-14 rounded-[4rem] border-4 border-dashed border-white/5 aspect-video flex flex-col items-center justify-center gap-8 hover:bg-white/5 hover:border-white/20 transition-all">
-                  {mediaConfig.logoUrl ? <img src={mediaConfig.logoUrl} className="max-h-full drop-shadow-4xl" /> : <span className="text-zinc-600 font-black uppercase text-xs tracking-[0.4em]">Trocar Logotipo</span>}
+                <button onClick={() => { setMediaUploadType('logo'); mediaFileInputRef.current?.click(); }} className="bg-white/[0.02] p-14 rounded-[4rem] border-4 border-dashed border-white/5 aspect-video flex flex-col items-center justify-center gap-8 hover:bg-white/5 hover:border-white/20 transition-all overflow-hidden">
+                  {mediaConfig.logoUrl ? <img src={mediaConfig.logoUrl} className="max-h-full object-contain drop-shadow-4xl" /> : <span className="text-zinc-600 font-black uppercase text-xs tracking-[0.4em]">Trocar Logotipo</span>}
                 </button>
-                <button onClick={() => { setMediaUploadType('bg'); mediaFileInputRef.current?.click(); }} className="bg-white/[0.02] p-14 rounded-[4rem] border-4 border-dashed border-white/5 aspect-video flex flex-col items-center justify-center gap-8 hover:bg-white/5 hover:border-white/20 transition-all">
+                <button onClick={() => { setMediaUploadType('bg'); mediaFileInputRef.current?.click(); }} className="bg-white/[0.02] p-14 rounded-[4rem] border-4 border-dashed border-white/5 aspect-video flex flex-col items-center justify-center gap-8 hover:bg-white/5 hover:border-white/20 transition-all overflow-hidden">
                   {mediaConfig.bgImageUrl ? <div className="text-amber-500 text-xs font-black uppercase">Fundo Personalizado Ativo</div> : <span className="text-zinc-600 font-black uppercase text-xs tracking-[0.4em]">Fundo Broadcast</span>}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Aba de Produtos */}
           {activeTab === 'products' && (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8">
               <div className="relative group">
@@ -192,7 +191,6 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
             </div>
           )}
 
-          {/* Mobile QR */}
           {activeTab === 'remote' && (
             <div className="flex flex-col items-center justify-center py-24 animate-in fade-in slide-in-from-bottom-8">
                 <div className="bg-white p-14 rounded-[5rem] shadow-4xl border-[25px] border-zinc-900 mb-12">

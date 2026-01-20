@@ -22,7 +22,8 @@ export interface MediaConfig {
   bgImageUrl: string;
   slideDuration: number;
   listScrollSpeed: number;
-  isNodeMode: boolean; // Ativa o monitor de logs do sistema
+  isNodeMode: boolean; 
+  rotation: number; // Persistência da rotação 360
 }
 
 export interface Partner {

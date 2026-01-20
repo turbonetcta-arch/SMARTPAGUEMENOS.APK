@@ -45,7 +45,8 @@ const App: React.FC = () => {
       bgImageUrl: '',
       slideDuration: 18,
       listScrollSpeed: 45,
-      isNodeMode: true
+      isNodeMode: true,
+      rotation: 0
     };
   });
 
@@ -54,7 +55,6 @@ const App: React.FC = () => {
 
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [rotation, setRotation] = useState(0); 
   const [scale, setScale] = useState(1);
   const [isRemoteMode, setIsRemoteMode] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -67,12 +67,13 @@ const App: React.FC = () => {
   // Sincronização Mobile -> TV
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'smart_pague_menos_products_v4') {
-        setProducts(JSON.parse(e.newValue || '[]'));
+      if (e.key === 'smart_pague_menos_products_v4' && e.newValue) {
+        setProducts(JSON.parse(e.newValue));
         addLog('REMOTE: Data updated via mobile');
       }
-      if (e.key === 'smart_pague_menos_media_v4') {
-        setMediaConfig(JSON.parse(e.newValue || '{}'));
+      if (e.key === 'smart_pague_menos_media_v4' && e.newValue) {
+        const newMedia = JSON.parse(e.newValue);
+        setMediaConfig(newMedia);
         addLog('REMOTE: Media config updated');
       }
     };
@@ -80,10 +81,20 @@ const App: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Teclas do Controle Remoto
+  // Teclas do Controle Remoto (Bloqueadas se Admin estiver aberto)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       setLastActivity(Date.now());
+      
+      // Se Admin aberto, apenas Escape fecha o Admin e não navega
+      if (isAdminOpen) {
+        if (e.key === 'Escape') {
+          setIsAdminOpen(false);
+          addLog('REMOTE: Menu closed via Escape');
+        }
+        return;
+      }
+
       switch(e.key) {
         case 'ArrowRight':
           setCurrentCategoryIndex(prev => (prev + 1) % activeCategories.length);
@@ -94,15 +105,17 @@ const App: React.FC = () => {
           addLog('REMOTE: Key -> Category Backward');
           break;
         case 'Enter':
+          setIsAdminOpen(true);
+          addLog('REMOTE: Menu opened via Enter');
+          break;
         case 'Escape':
           setIsAdminOpen(prev => !prev);
-          addLog('REMOTE: Key -> Menu Toggle');
           break;
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeCategories.length]);
+  }, [activeCategories.length, isAdminOpen]);
 
   // Gestão de Cursor Inativo
   useEffect(() => {
@@ -112,18 +125,17 @@ const App: React.FC = () => {
     return () => clearInterval(timer);
   }, [lastActivity]);
 
-  // AJUSTE DE ESCALA (Reduzido para 85% para não ocupar a tela toda)
   const handleResize = useCallback(() => {
     const winW = window.innerWidth;
     const winH = window.innerHeight;
-    const isPortrait = Math.abs(rotation % 180) === 90;
+    const isPortrait = Math.abs(mediaConfig.rotation % 180) === 90;
     const targetW = isPortrait ? 1080 : 1920;
     const targetH = isPortrait ? 1920 : 1080;
     
-    // Multiplicamos por 0.85 para deixar uma margem ao redor
+    // Fator de 0.85 para aspecto flutuante (mídia pequena na tela)
     const s = Math.min(winW / targetW, winH / targetH) * 0.85;
     setScale(s);
-  }, [rotation]);
+  }, [mediaConfig.rotation]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -133,10 +145,15 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [handleResize]);
 
+  // Salva alterações localmente para que o listener 'storage' funcione em abas diferentes
   useEffect(() => {
     localStorage.setItem('smart_pague_menos_products_v4', JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
     localStorage.setItem('smart_pague_menos_media_v4', JSON.stringify(mediaConfig));
-  }, [products, mediaConfig]);
+    handleResize(); // Força recalcular escala se a rotação mudar
+  }, [mediaConfig, handleResize]);
 
   useEffect(() => {
     setIsTransitioning(true);
@@ -146,10 +163,12 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentCategoryIndex((prev) => (prev + 1) % activeCategories.length);
+      if (!isAdminOpen) {
+        setCurrentCategoryIndex((prev) => (prev + 1) % activeCategories.length);
+      }
     }, mediaConfig.slideDuration * 1000);
     return () => clearInterval(timer);
-  }, [activeCategories.length, mediaConfig.slideDuration]);
+  }, [activeCategories.length, mediaConfig.slideDuration, isAdminOpen]);
 
   if (isRemoteMode) {
     return (
@@ -159,49 +178,43 @@ const App: React.FC = () => {
         isPartnersEnabled={true}
         onTogglePartners={() => {}}
         onUpdateScrollSpeed={(s) => {
-          const newConfig = {...mediaConfig, listScrollSpeed: s};
-          setMediaConfig(newConfig);
-          localStorage.setItem('smart_pague_menos_media_v4', JSON.stringify(newConfig));
+          setMediaConfig(prev => ({...prev, listScrollSpeed: s}));
         }}
         onUpdatePrice={(id, price) => {
-          const newProducts = products.map(p => p.id === id ? {...p, price} : p);
-          setProducts(newProducts);
-          localStorage.setItem('smart_pague_menos_products_v4', JSON.stringify(newProducts));
+          setProducts(prev => prev.map(p => p.id === id ? {...p, price} : p));
         }}
         onToggleOffer={(id) => {
-          const newProducts = products.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item);
-          setProducts(newProducts);
-          localStorage.setItem('smart_pague_menos_products_v4', JSON.stringify(newProducts));
+          setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item));
         }}
       />
     );
   }
 
-  const isPortrait = Math.abs(rotation % 180) === 90;
+  const isPortrait = Math.abs(mediaConfig.rotation % 180) === 90;
   const baseWidth = isPortrait ? 1080 : 1920;
   const baseHeight = isPortrait ? 1920 : 1080;
 
   return (
     <div 
-      className={`h-screen w-screen bg-[#050505] flex items-center justify-center overflow-hidden relative ${showCursor ? 'cursor-default' : 'cursor-none'}`}
+      className={`h-screen w-screen bg-[#050505] flex items-center justify-center overflow-hidden relative ${showCursor || isAdminOpen ? 'cursor-default' : 'cursor-none'}`}
       onMouseMove={() => setLastActivity(Date.now())}
       onClick={(e) => {
-        if (e.clientY < 200) setIsAdminOpen(true);
+        // Abre o Admin ao clicar na parte superior se não estiver aberto
+        if (!isAdminOpen && e.clientY < 200) setIsAdminOpen(true);
       }}
     >
-      {/* Luzes de fundo para ambientação do painel flutuante */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_0%,transparent_70%)] pointer-events-none"></div>
 
       <div 
         style={{
           width: `${baseWidth}px`,
           height: `${baseHeight}px`,
-          transform: `scale(${scale}) rotate(${rotation}deg)`,
+          transform: `scale(${scale}) rotate(${mediaConfig.rotation}deg)`,
           transformOrigin: 'center center',
           backgroundImage: mediaConfig.bgImageUrl ? `url(${mediaConfig.bgImageUrl})` : 'none',
           backgroundColor: '#000',
         }} 
-        className="flex flex-col relative transition-all duration-[1500ms] cubic-bezier(0.25, 1, 0.5, 1) border border-white/10 overflow-hidden flex-shrink-0 shadow-[0_0_200px_rgba(0,0,0,1),0_0_50px_rgba(0,0,0,0.5)] rounded-sm"
+        className="flex flex-col relative transition-all duration-[1000ms] cubic-bezier(0.25, 1, 0.5, 1) border border-white/10 overflow-hidden flex-shrink-0 shadow-[0_0_200px_rgba(0,0,0,1),0_0_50px_rgba(0,0,0,0.5)] rounded-sm"
       >
         <header className="h-[20%] flex items-center justify-between px-28 z-30 bg-black border-b-8 border-white/10 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-transparent to-amber-600/20"></div>
@@ -240,14 +253,18 @@ const App: React.FC = () => {
           </div>
           <div className="flex-1 overflow-hidden h-full flex items-center bg-red-600">
             <div className="flex whitespace-nowrap animate-marquee-custom items-center gap-48">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="flex items-center gap-48">
-                  <span className="font-black text-7xl uppercase italic tracking-tighter text-white drop-shadow-lg">
-                    {mediaConfig.marqueeText}
-                  </span>
-                  <div className="w-12 h-12 bg-white rotate-45 border-4 border-black/10"></div>
-                </div>
-              ))}
+              <div className="flex items-center gap-48 shrink-0">
+                <span className="font-black text-7xl uppercase italic tracking-tighter text-white drop-shadow-lg">
+                  {mediaConfig.marqueeText}
+                </span>
+                <div className="w-12 h-12 bg-white rotate-45 border-4 border-black/10"></div>
+              </div>
+              <div className="flex items-center gap-48 shrink-0">
+                <span className="font-black text-7xl uppercase italic tracking-tighter text-white drop-shadow-lg">
+                  {mediaConfig.marqueeText}
+                </span>
+                <div className="w-12 h-12 bg-white rotate-45 border-4 border-black/10"></div>
+              </div>
             </div>
           </div>
         </footer>
@@ -278,11 +295,12 @@ const App: React.FC = () => {
           onAddProduct={(p) => setProducts(prev => [...prev, p])} 
           onDeleteProduct={() => {}} 
           onRotate90={() => {
-            setRotation(r => (r + 90) % 360);
-            addLog(`HARDWARE: Rotation update -> ${(rotation + 90) % 360}°`);
+            const nextRotation = (mediaConfig.rotation + 90) % 360;
+            setMediaConfig(prev => ({ ...prev, rotation: nextRotation }));
+            addLog(`HARDWARE: Rotation update -> ${nextRotation}°`);
           }} 
           onSpin360={() => {}} 
-          currentRotation={rotation} 
+          currentRotation={mediaConfig.rotation} 
           isSpinning={false} 
           mediaConfig={mediaConfig} 
           onUpdateMedia={setMediaConfig}
