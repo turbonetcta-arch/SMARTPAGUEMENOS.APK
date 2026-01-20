@@ -16,16 +16,6 @@ export interface ThemeSettings {
   panel: string;
 }
 
-export interface MediaConfig {
-  marqueeText: string;
-  logoUrl: string;
-  bgImageUrl: string;
-  slideDuration: number;
-  listScrollSpeed: number;
-  isNodeMode: boolean; 
-  rotation: number; // Persistência da rotação 360
-}
-
 export interface Partner {
   id: string;
   name: string;
@@ -41,4 +31,10 @@ export interface Product {
   isOffer?: boolean;
   offerPrice?: number;
   imageUrl?: string;
+}
+
+export interface AppState {
+  currentCategory: Category;
+  products: Product[];
+  activeOfferIndex: number;
 }
