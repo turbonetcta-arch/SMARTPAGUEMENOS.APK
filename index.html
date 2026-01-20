@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Butcher Shop Digital Media</title>
+    <title>Smart Pague Menos - Digital Media</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -13,13 +13,15 @@
         background-color: #000;
         margin: 0;
         overflow: hidden;
+        height: 100vh;
+        width: 100vw;
       }
       .font-oswald {
         font-family: 'Oswald', sans-serif;
       }
       @keyframes scroll {
-        0% { transform: translateY(0); }
-        100% { transform: translateY(-50%); }
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
       }
       @keyframes scroll-vertical {
         0% { transform: translateY(0); }
@@ -29,41 +31,28 @@
         0% { transform: translateX(-100%) rotate(45deg); }
         100% { transform: translateX(200%) rotate(45deg); }
       }
-      @keyframes float {
-        0%, 100% { transform: translateY(0) rotate(-3deg); }
-        50% { transform: translateY(-15px) rotate(-1deg); }
+      @keyframes zoom-price {
+        0%, 100% { transform: scale(1) rotate(-2deg); }
+        50% { transform: scale(1.15) rotate(2deg); filter: brightness(1.2); }
       }
-      @keyframes bloom {
-        0%, 100% { filter: drop-shadow(0 0 20px rgba(220, 38, 38, 0.4)); }
-        50% { filter: drop-shadow(0 0 50px rgba(220, 38, 38, 0.8)); }
-      }
-      @keyframes spin360 {
-        from { transform: scale(var(--base-scale)) rotate(var(--base-rotation)); }
-        to { transform: scale(var(--base-scale)) rotate(calc(var(--base-rotation) + 360deg)); }
+      @keyframes fade-in {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
       }
       .animate-scroll {
-        animation: scroll 20s linear infinite;
+        animation: scroll 40s linear infinite;
       }
       .animate-scroll-vertical {
-        animation: scroll-vertical 30s linear infinite;
+        animation: scroll-vertical 40s linear infinite;
       }
-      .animate-scroll-vertical:hover {
-        animation-play-state: paused;
-      }
-      .animate-pulse-slow {
-        animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      .animate-zoom-price {
+        animation: zoom-price 2s ease-in-out infinite;
       }
       .animate-shine {
         animation: shine 4s infinite;
       }
-      .animate-float {
-        animation: float 5s ease-in-out infinite;
-      }
-      .animate-bloom {
-        animation: bloom 4s ease-in-out infinite;
-      }
-      .animate-spin-once {
-        animation: spin360 1.2s cubic-bezier(0.45, 0, 0.55, 1);
+      .animate-fade-in {
+        animation: fade-in 0.8s ease-out forwards;
       }
       .custom-scrollbar::-webkit-scrollbar {
         width: 8px;
