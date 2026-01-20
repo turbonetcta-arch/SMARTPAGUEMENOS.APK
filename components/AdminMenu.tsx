@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Product, Category, ThemeSettings, Partner } from '../types';
 import { GoogleGenAI } from "@google/genai";
 
@@ -28,7 +28,7 @@ interface AdminMenuProps {
   onSpin360: () => void;
   currentRotation: number;
   isSpinning: boolean;
-  onUpdateName?: (id: string, name: string) => void; // Adicionado
+  onUpdateName?: (id: string, name: string) => void;
 }
 
 const AdminMenu: React.FC<AdminMenuProps> = ({ 
@@ -53,6 +53,10 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
   const [newProdUnit, setNewProdUnit] = useState('kg');
   const [newProdImageUrl, setNewProdImageUrl] = useState('');
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const listFileInputRef = useRef<HTMLInputElement>(null);
+  const [targetUpdateId, setTargetUpdateId] = useState<string | null>(null);
+
   const remoteUrl = `${window.location.origin}${window.location.pathname}?mode=remote`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(remoteUrl)}`;
 
@@ -64,35 +68,33 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
     });
   }, [products, searchQuery, filterCategory]);
 
-  const generateSlogan = async (productName: string) => {
-    if (!productName) return;
-    setIsGenerating(true);
-    setStatusMsg('Criando slogan persuasivo...');
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `Crie um slogan de 3 a 5 palavras extremamente chamativo para vender ${productName} em um supermercado. Use palavras fortes como 'Imbatível', 'Premium' ou 'Frescor'. Retorne apenas o texto do slogan.`,
-      });
-      alert(`Sugestão da IA para ${productName}:\n\n"${response.text}"`);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsGenerating(false);
-      setStatusMsg('');
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isNewProduct: boolean) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        if (isNewProduct) {
+          setNewProdImageUrl(base64);
+        } else if (targetUpdateId) {
+          onUpdateImage(targetUpdateId, base64);
+          setTargetUpdateId(null);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const generateAIImage = async (productName: string, targetId?: string) => {
     if (!productName) return;
     setIsGenerating(true);
-    setStatusMsg('A IA está pintando sua foto...');
+    setStatusMsg('A IA está criando sua foto...');
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: {
-          parts: [{ text: `Professional food photography of ${productName}, top-down view, high resolution, delicious appearance, clean wooden background, butcher shop style.` }],
+          parts: [{ text: `High quality professional studio photography of ${productName} for supermarket menu, clean background, 4k.` }],
         },
       });
 
@@ -111,12 +113,10 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
         } else {
           setNewProdImageUrl(base64Image);
         }
-      } else {
-        alert("Não foi possível gerar a imagem. Tente um nome de produto mais claro.");
       }
     } catch (error) {
-      console.error("Erro ao gerar imagem:", error);
-      alert("Erro ao conectar com a IA. Verifique sua conexão e chave API.");
+      console.error(error);
+      alert("Erro ao conectar com a IA.");
     } finally {
       setIsGenerating(false);
       setStatusMsg('');
@@ -161,8 +161,17 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
     <div className="fixed inset-0 z-[400] bg-black/95 flex items-center justify-center p-4 md:p-10 backdrop-blur-xl">
       <div className="bg-zinc-900 w-full max-w-7xl h-[90vh] rounded-[3rem] border border-white/10 shadow-4xl flex flex-col overflow-hidden animate-fade-in relative">
         
+        {/* Input Oculto para Lista */}
+        <input 
+          type="file" 
+          ref={listFileInputRef} 
+          className="hidden" 
+          accept="image/*" 
+          onChange={(e) => handleFileUpload(e, false)} 
+        />
+
         {isGenerating && (
-          <div className="absolute inset-0 z-[600] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-10 animate-fade-in">
+          <div className="absolute inset-0 z-[600] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-10">
             <div className="w-24 h-24 border-8 border-yellow-500 border-t-transparent rounded-full animate-spin mb-8"></div>
             <h3 className="text-4xl font-black text-white font-oswald uppercase italic mb-4">{statusMsg}</h3>
           </div>
@@ -171,8 +180,8 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
         <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 bg-zinc-900/50">
           <div className="flex items-center gap-8">
             <div className="flex flex-col">
-              <h2 className="text-4xl font-black text-white font-oswald tracking-tighter uppercase leading-none italic">Painel Smart AI</h2>
-              <span className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Gestão de Mídia Digital</span>
+              <h2 className="text-4xl font-black text-white font-oswald tracking-tighter uppercase leading-none italic">Gerenciamento</h2>
+              <span className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Smart Pague Menos Digital</span>
             </div>
             <div className="flex bg-black p-1.5 rounded-2xl border border-white/5">
               {(['products', 'partners', 'remote'] as const).map(tab => (
@@ -201,7 +210,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                     placeholder="BUSCAR PRODUTO..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-black border border-white/10 p-5 rounded-2xl text-white font-bold text-sm uppercase outline-none pl-14 focus:border-yellow-500"
+                    className="w-full bg-black border border-white/10 p-5 rounded-2xl text-white font-bold text-sm uppercase outline-none focus:border-yellow-500 pl-14"
                   />
                   <svg className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-700" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 </div>
@@ -209,7 +218,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                   <select 
                     value={filterCategory} 
                     onChange={(e) => setFilterCategory(e.target.value as any)}
-                    className="w-full h-full bg-black border border-white/10 p-5 rounded-2xl text-white font-black text-[10px] uppercase outline-none focus:border-indigo-500"
+                    className="w-full h-full bg-black border border-white/10 p-5 rounded-2xl text-white font-black text-[10px] uppercase outline-none"
                   >
                     <option value="TODOS">TODAS CATEGORIAS</option>
                     {Object.values(Category).map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -217,7 +226,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                 </div>
                 <button onClick={() => setIsAddingProduct(true)} className="md:col-span-3 bg-yellow-500 text-black font-black text-xs uppercase rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                  Cadastrar Produto
+                  Novo Item
                 </button>
               </div>
 
@@ -229,15 +238,22 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                     </button>
                     
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-white/10 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 flex items-center justify-center relative">
+                      <button 
+                        onClick={() => {
+                          setTargetUpdateId(p.id);
+                          listFileInputRef.current?.click();
+                        }}
+                        className="w-16 h-16 bg-white/10 rounded-2xl overflow-hidden flex-shrink-0 border border-white/10 flex items-center justify-center relative group/img hover:border-yellow-500 transition-all"
+                      >
                         {p.imageUrl ? (
-                          <img src={p.imageUrl} className="w-full h-full object-cover" alt="" />
+                          <img src={p.imageUrl} className="w-full h-full object-cover group-hover/img:opacity-40 transition-opacity" alt="" />
                         ) : (
-                          <button onClick={() => generateAIImage(p.name, p.id)} className="w-full h-full flex items-center justify-center text-yellow-500/40 hover:text-yellow-500 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m16 6-4 4-4-4"/><path d="M16 18a4 4 0 0 0-8 0"/></svg>
-                          </button>
+                          <svg className="text-white/20" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                         )}
-                      </div>
+                        <div className="absolute inset-0 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity">
+                          <svg className="text-white" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        </div>
+                      </button>
                       <div className="flex flex-col min-w-0 flex-1">
                         <input 
                           type="text"
@@ -255,7 +271,6 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                          type="number" 
                          step="0.01" 
                          value={p.price || ''} 
-                         placeholder="0.00"
                          onChange={(e) => {
                            const val = parseFloat(e.target.value);
                            onUpdatePrice(p.id, isNaN(val) ? 0 : val);
@@ -269,10 +284,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                       <button onClick={() => onToggleOffer(p.id)} className={`flex-1 py-4 rounded-2xl text-[9px] font-black uppercase transition-all ${p.isOffer ? 'bg-yellow-500 text-black shadow-lg scale-[1.03]' : 'bg-white/5 text-zinc-500 hover:bg-white/10'}`}>
                         {p.isOffer ? '🌟 EM OFERTA' : 'DESTACAR'}
                       </button>
-                      <button onClick={() => generateSlogan(p.name)} className="px-4 bg-zinc-800 text-zinc-400 rounded-2xl hover:bg-zinc-700 hover:text-white transition-all" title="Gerar Slogan com IA">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                      </button>
-                      <button onClick={() => generateAIImage(p.name, p.id)} className="px-4 bg-indigo-600/20 text-indigo-400 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all" title="Nova Foto com IA">
+                      <button onClick={() => generateAIImage(p.name, p.id)} className="px-4 bg-indigo-600/20 text-indigo-400 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all" title="Foto com IA">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
                       </button>
                     </div>
@@ -284,8 +296,8 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
             <div className="space-y-10">
               <div className="flex justify-between items-center border-b border-white/5 pb-8">
                 <div className="flex flex-col">
-                  <h3 className="text-3xl font-black text-white font-oswald uppercase tracking-tighter italic">Gestão de Marcas</h3>
-                  <p className="text-zinc-500 text-[10px] font-bold tracking-widest uppercase mt-1">Os logos aparecem no rodapé rotativo</p>
+                  <h3 className="text-3xl font-black text-white font-oswald uppercase tracking-tighter italic">Suas Marcas</h3>
+                  <p className="text-zinc-500 text-[10px] font-bold tracking-widest uppercase mt-1">Logos exibidos no rodapé do painel</p>
                 </div>
                 <button onClick={() => setIsAddingPartner(true)} className="px-10 py-5 bg-red-600 text-white font-black text-xs uppercase rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all">+ Nova Marca</button>
               </div>
@@ -298,7 +310,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                     <div className="w-full aspect-square bg-white rounded-3xl p-6 flex items-center justify-center mb-6 overflow-hidden">
                       <img src={p.imageUrl} className="max-h-full object-contain" alt={p.name} />
                     </div>
-                    <span className="text-white font-black uppercase text-[10px] text-center">{p.name}</span>
+                    <span className="text-white font-black uppercase text-[10px] text-center tracking-widest">{p.name}</span>
                   </div>
                 ))}
               </div>
@@ -306,11 +318,11 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-10 animate-fade-in">
               <div className="bg-white p-12 rounded-[5rem] shadow-4xl mb-12 border-[16px] border-zinc-800 transform -rotate-2">
-                <img src={qrCodeUrl} alt="Remote Access QR Code" className="w-72 h-72" />
+                <img src={qrCodeUrl} alt="Remote QR Code" className="w-72 h-72" />
               </div>
-              <h3 className="text-6xl font-black text-white font-oswald uppercase tracking-tighter mb-6 italic">Controle Remoto</h3>
+              <h3 className="text-6xl font-black text-white font-oswald uppercase tracking-tighter mb-6 italic">Painel Remoto</h3>
               <p className="text-zinc-500 max-w-lg font-bold uppercase text-xs tracking-[0.2em] leading-relaxed mb-10">
-                Aponte sua câmera para mudar preços e categorias enquanto caminha pela loja.
+                Escaneie com o celular para alterar preços em tempo real diretamente do balcão.
               </p>
               <div className="bg-black/80 backdrop-blur-md p-6 rounded-3xl border border-white/10 w-full max-w-2xl truncate text-indigo-400 font-mono text-[10px] flex justify-between items-center">
                 <span>{remoteUrl}</span>
@@ -324,7 +336,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
         {isAddingProduct && (
           <div className="fixed inset-0 z-[500] bg-black/98 flex items-center justify-center p-6 backdrop-blur-2xl">
             <div className="bg-zinc-900 border border-white/10 p-12 md:p-16 rounded-[4rem] w-full max-w-2xl shadow-4xl animate-fade-in">
-              <h3 className="text-5xl font-black text-white font-oswald uppercase tracking-tighter italic text-center mb-10">Novo Item</h3>
+              <h3 className="text-5xl font-black text-white font-oswald uppercase tracking-tighter italic text-center mb-10">Cadastrar Item</h3>
               <form onSubmit={handleAddProduct} className="space-y-6">
                 <input value={newProdName} onChange={e => setNewProdName(e.target.value)} placeholder="NOME DO PRODUTO (EX: PICANHA)" className="w-full bg-black border border-white/10 p-7 rounded-[2.5rem] text-white font-bold text-xl uppercase outline-none focus:border-yellow-500 transition-all" required />
                 
@@ -337,14 +349,44 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
                   </select>
                 </div>
 
-                <div className="relative group">
-                  <input value={newProdImageUrl} onChange={e => setNewProdImageUrl(e.target.value)} placeholder="LINK DA IMAGEM OU GERE COM IA" className="w-full bg-black border border-white/10 p-7 rounded-[2.5rem] text-white font-bold text-sm outline-none pr-32" />
-                  <button type="button" onClick={() => generateAIImage(newProdName)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-yellow-500 text-black px-6 py-3 rounded-2xl font-black text-[10px] uppercase shadow-lg hover:scale-105 active:scale-95 transition-all">
-                    Foto com IA
-                  </button>
+                <div className="flex flex-col gap-4">
+                  <div className="flex gap-4">
+                    <div className="flex-1 bg-black border border-white/10 p-4 rounded-[2.5rem] flex items-center gap-4 min-h-[5rem]">
+                      {newProdImageUrl ? (
+                        <img src={newProdImageUrl} className="w-12 h-12 rounded-xl object-cover" alt="Preview" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
+                          <svg className="text-white/20" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        </div>
+                      )}
+                      <span className="text-zinc-500 text-[10px] uppercase font-black tracking-widest truncate">
+                        {newProdImageUrl ? 'Imagem selecionada' : 'Nenhuma foto carregada'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <button 
+                      type="button" 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="py-5 bg-indigo-600 text-white font-black rounded-[2.5rem] uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-xl"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Carregar Foto
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => generateAIImage(newProdName)}
+                      className="py-5 bg-white/10 text-yellow-500 font-black rounded-[2.5rem] uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-white/20 transition-all border border-yellow-500/20 shadow-xl"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                      Foto com IA
+                    </button>
+                  </div>
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, true)} />
                 </div>
 
-                <select value={newProdCategory} onChange={e => setNewProdCategory(e.target.value as Category)} className="w-full bg-black border border-white/10 p-7 rounded-[2.5rem] text-white font-black uppercase text-sm">
+                <select value={newProdCategory} onChange={e => setNewProdCategory(e.target.value as Category)} className="w-full bg-black border border-white/10 p-7 rounded-[2.5rem] text-white font-black uppercase text-sm outline-none">
                   {Object.values(Category).map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -352,7 +394,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
 
                 <div className="flex gap-6 mt-12">
                   <button type="button" onClick={() => setIsAddingProduct(false)} className="flex-1 py-7 bg-white/5 text-white font-black rounded-[2.5rem] uppercase tracking-widest">Descartar</button>
-                  <button type="submit" className="flex-1 py-7 bg-yellow-500 text-black font-black rounded-[2.5rem] uppercase tracking-widest shadow-3xl">Salvar Produto</button>
+                  <button type="submit" className="flex-1 py-7 bg-yellow-500 text-black font-black rounded-[2.5rem] uppercase tracking-widest shadow-3xl">Salvar Item</button>
                 </div>
               </form>
             </div>
@@ -366,10 +408,10 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
               <h3 className="text-4xl font-black text-white font-oswald uppercase mb-10 text-center italic">Nova Marca</h3>
               <form onSubmit={handleAddPartner} className="space-y-8">
                 <input value={newPartnerName} onChange={e => setNewPartnerName(e.target.value)} placeholder="NOME DA EMPRESA" className="w-full bg-black border border-white/10 p-7 rounded-[2.5rem] text-white font-bold text-xl uppercase outline-none focus:border-red-600" required />
-                <input value={newPartnerUrl} onChange={e => setNewPartnerUrl(e.target.value)} placeholder="LINK DO LOGOTIPO (PNG)" className="w-full bg-black border border-white/10 p-7 rounded-[2.5rem] text-white font-bold outline-none" required />
+                <input value={newPartnerUrl} onChange={e => setNewPartnerUrl(e.target.value)} placeholder="URL DO LOGO (PNG)" className="w-full bg-black border border-white/10 p-7 rounded-[2.5rem] text-white font-bold outline-none" required />
                 <div className="flex gap-6">
                   <button type="button" onClick={() => setIsAddingPartner(false)} className="flex-1 py-7 bg-white/5 text-white font-black rounded-[2.5rem] uppercase">Sair</button>
-                  <button type="submit" className="flex-1 py-7 bg-red-600 text-white font-black rounded-[2.5rem] uppercase shadow-3xl">Salvar Marca</button>
+                  <button type="submit" className="flex-1 py-7 bg-red-600 text-white font-black rounded-[2.5rem] uppercase shadow-3xl">Salvar</button>
                 </div>
               </form>
             </div>
