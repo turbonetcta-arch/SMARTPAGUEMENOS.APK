@@ -22,8 +22,7 @@ export interface MediaConfig {
   bgImageUrl: string;
   slideDuration: number;
   listScrollSpeed: number;
-  isJsMode: boolean;
-  isNodeMode: boolean; // Novo: Ativa o monitor de sistema simulado Node.js
+  isNodeMode: boolean; // Ativa o monitor de logs do sistema
 }
 
 export interface Partner {
@@ -41,10 +40,4 @@ export interface Product {
   isOffer?: boolean;
   offerPrice?: number;
   imageUrl?: string;
-}
-
-export interface AppState {
-  currentCategory: Category;
-  products: Product[];
-  activeOfferIndex: number;
 }

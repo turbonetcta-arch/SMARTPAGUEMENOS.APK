@@ -10,29 +10,28 @@
 
 @layer base {
   body {
-    @apply bg-black text-white antialiased overflow-hidden select-none cursor-none;
+    @apply bg-black text-white antialiased overflow-hidden select-none;
     font-family: 'Inter', sans-serif;
-    perspective: 2000px; /* Profundidade para rotações 3D sutil */
   }
 }
 
 @layer components {
-  .glass-panel {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-2xl;
-  }
-  
-  .neon-text-red {
-    text-shadow: 0 0 20px rgba(220, 38, 38, 0.6), 0 0 40px rgba(220, 38, 38, 0.3);
-  }
-  
   .neon-text-gold {
-    text-shadow: 0 0 20px rgba(251, 191, 36, 0.5), 0 0 40px rgba(251, 191, 36, 0.2);
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.4), 0 0 40px rgba(251, 191, 36, 0.1);
   }
 
   .broadcast-shadow {
-    box-shadow: 0 0 100px rgba(0,0,0,0.8), inset 0 0 40px rgba(255,255,255,0.02);
-    backface-visibility: hidden;
-    transform-style: preserve-3d;
+    box-shadow: 0 0 150px rgba(0,0,0,1), inset 0 0 80px rgba(255,255,255,0.01);
+  }
+
+  .scanline-overlay {
+    background: linear-gradient(
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.25) 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 1000;
   }
 }
 
@@ -46,18 +45,12 @@
   100% { transform: translateX(-33.33%); }
 }
 
-@keyframes flash-in {
-  0% { opacity: 0; filter: brightness(3); transform: scale(0.98); }
-  50% { opacity: 1; filter: brightness(1.5); transform: scale(1.01); }
-  100% { opacity: 1; filter: brightness(1); transform: scale(1); }
+@keyframes zoom-price {
+  0%, 100% { transform: scale(1) rotate(3deg); }
+  50% { transform: scale(1.05) rotate(0deg); }
 }
 
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-20px) scale(1.02); }
-}
-
-@keyframes shine-sweep {
+@keyframes light-sweep {
   0% { transform: translateX(-100%) rotate(45deg); }
   100% { transform: translateX(200%) rotate(45deg); }
 }
@@ -72,40 +65,31 @@
   will-change: transform;
 }
 
-.animate-flash {
-  animation: flash-in 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.animate-zoom-price {
+  animation: zoom-price 4s ease-in-out infinite;
 }
 
-.animate-float {
-  animation: float-slow 8s ease-in-out infinite;
+.shine-sweep {
+  position: relative;
+  overflow: hidden;
 }
 
-.shine-effect::after {
+.shine-sweep::after {
   content: "";
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: linear-gradient(
-    to right,
-    transparent 0%,
-    rgba(255,255,255,0.1) 50%,
-    transparent 100%
-  );
-  transform: skewX(-25deg);
-  animation: shine-sweep 3s ease-in-out infinite;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+  animation: light-sweep 3s infinite;
 }
 
-.scanline-overlay {
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%,
-    rgba(0, 0, 0, 0.25) 50%
-  ), linear-gradient(
-    90deg,
-    rgba(255, 0, 0, 0.06),
-    rgba(0, 255, 0, 0.02),
-    rgba(0, 0, 255, 0.06)
-  );
-  background-size: 100% 2px, 3px 100%;
-  pointer-events: none;
-  z-index: 100;
-  opacity: 0.15;
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-black/20 rounded-full;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-zinc-800 rounded-full border-2 border-transparent bg-clip-padding;
 }
