@@ -64,7 +64,7 @@ const App: React.FC = () => {
   const activeCategories = useMemo(() => CATEGORIES_CYCLE, []);
   const currentCategory = activeCategories[currentCategoryIndex % activeCategories.length];
 
-  // Listener para sincronização entre abas (Celular -> TV)
+  // Sincronização Mobile -> TV
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'smart_pague_menos_products_v4') {
@@ -80,7 +80,7 @@ const App: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Controle por Teclado (Controle Remoto de TV)
+  // Teclas do Controle Remoto
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       setLastActivity(Date.now());
@@ -104,25 +104,24 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeCategories.length]);
 
-  // Gestão de Cursor e Atividade
+  // Gestão de Cursor Inativo
   useEffect(() => {
     const timer = setInterval(() => {
-      if (Date.now() - lastActivity > 5000) {
-        setShowCursor(false);
-      } else {
-        setShowCursor(true);
-      }
+      setShowCursor(Date.now() - lastActivity <= 5000);
     }, 1000);
     return () => clearInterval(timer);
   }, [lastActivity]);
 
+  // AJUSTE DE ESCALA (Reduzido para 85% para não ocupar a tela toda)
   const handleResize = useCallback(() => {
     const winW = window.innerWidth;
     const winH = window.innerHeight;
     const isPortrait = Math.abs(rotation % 180) === 90;
     const targetW = isPortrait ? 1080 : 1920;
     const targetH = isPortrait ? 1920 : 1080;
-    const s = Math.min(winW / targetW, winH / targetH);
+    
+    // Multiplicamos por 0.85 para deixar uma margem ao redor
+    const s = Math.min(winW / targetW, winH / targetH) * 0.85;
     setScale(s);
   }, [rotation]);
 
@@ -184,13 +183,15 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className={`h-screen w-screen bg-[#000] flex items-center justify-center overflow-hidden relative ${showCursor ? 'cursor-default' : 'cursor-none'}`}
+      className={`h-screen w-screen bg-[#050505] flex items-center justify-center overflow-hidden relative ${showCursor ? 'cursor-default' : 'cursor-none'}`}
       onMouseMove={() => setLastActivity(Date.now())}
       onClick={(e) => {
-        // Se clicar no topo abre o admin
         if (e.clientY < 200) setIsAdminOpen(true);
       }}
     >
+      {/* Luzes de fundo para ambientação do painel flutuante */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_0%,transparent_70%)] pointer-events-none"></div>
+
       <div 
         style={{
           width: `${baseWidth}px`,
@@ -200,7 +201,7 @@ const App: React.FC = () => {
           backgroundImage: mediaConfig.bgImageUrl ? `url(${mediaConfig.bgImageUrl})` : 'none',
           backgroundColor: '#000',
         }} 
-        className="flex flex-col relative transition-all duration-[1500ms] cubic-bezier(0.25, 1, 0.5, 1) border border-white/5 overflow-hidden flex-shrink-0 shadow-[0_0_150px_rgba(0,0,0,1)]"
+        className="flex flex-col relative transition-all duration-[1500ms] cubic-bezier(0.25, 1, 0.5, 1) border border-white/10 overflow-hidden flex-shrink-0 shadow-[0_0_200px_rgba(0,0,0,1),0_0_50px_rgba(0,0,0,0.5)] rounded-sm"
       >
         <header className="h-[20%] flex items-center justify-between px-28 z-30 bg-black border-b-8 border-white/10 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-transparent to-amber-600/20"></div>
