@@ -225,6 +225,7 @@ const App: React.FC = () => {
           onUpdateTheme={setTheme} onClose={() => setIsAdminOpen(false)} 
           onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))}
           onUpdateImage={(id, img) => setProducts(prev => prev.map(item => item.id === id ? {...item, imageUrl: img} : item))}
+          onUpdateName={(id, name) => setProducts(prev => prev.map(item => item.id === id ? {...item, name} : item))}
           onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))}
           onBulkToggleOffers={(off) => setProducts(prev => prev.map(item => ({...item, isOffer: off})))}
           onAddProduct={(p) => setProducts(prev => [...prev, p])}

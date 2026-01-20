@@ -9,7 +9,8 @@ interface FeaturedOfferProps {
 const FeaturedOffer: React.FC<FeaturedOfferProps> = ({ offer }) => {
   if (!offer) return null;
 
-  const displayPrice = offer.offerPrice || offer.price;
+  // Fix: Better price fallback logic
+  const displayPrice = offer.offerPrice !== undefined ? offer.offerPrice : offer.price;
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-10 bg-gradient-to-br from-zinc-950 via-red-950 to-zinc-950 animate-fade-in overflow-hidden">
