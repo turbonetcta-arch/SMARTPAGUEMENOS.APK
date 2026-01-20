@@ -20,8 +20,10 @@ export interface MediaConfig {
   marqueeText: string;
   logoUrl: string;
   bgImageUrl: string;
-  slideDuration: number; // segundos por oferta
-  listScrollSpeed: number; // segundos por ciclo de rolagem da lista
+  slideDuration: number;
+  listScrollSpeed: number;
+  isJsMode: boolean;
+  isNodeMode: boolean; // Novo: Ativa o monitor de sistema simulado Node.js
 }
 
 export interface Partner {
