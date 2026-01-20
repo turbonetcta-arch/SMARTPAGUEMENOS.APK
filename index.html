@@ -1,8 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>SMART PAGUE MENOS | ULTRA DIGITAL SIGNAGE</title>
     
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
@@ -24,12 +25,12 @@
 }
 </script>
   </head>
-  <body class="bg-black relative overflow-hidden">
+  <body class="bg-black relative overflow-hidden w-screen h-screen m-0 p-0">
     <!-- Cinematic Grain Overlay -->
     <div class="fixed inset-0 pointer-events-none z-[999] opacity-[0.04] mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
     <!-- Scanline Effect -->
     <div class="fixed inset-0 pointer-events-none z-[998] scanline-overlay opacity-[0.15]"></div>
-    <div id="root"></div>
+    <div id="root" class="w-full h-full flex items-center justify-center"></div>
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>
