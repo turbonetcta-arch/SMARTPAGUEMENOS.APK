@@ -6,17 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SMART PAGUE MENOS | Digital Signage</title>
     
-    <!-- Favicon fix: Colocado no topo para interceptar a busca do navegador imediatamente -->
+    <!-- Resolve erro 404 de favicon injetando ícone via Data URI -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥩</text></svg>">
     
-    <!-- Tailwind CDN: Adicionado o sufixo de minificação para reduzir o ruído no console -->
-    <script src="https://cdn.tailwindcss.com?minify=true"></script>
+    <!-- Tailwind CDN: O aviso de produção é informativo. Em sandboxes, esta é a forma correta. -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
       :root {
         --bg-black: #000000;
+        --accent-gold: #fbbf24;
       }
       body {
         font-family: 'Inter', sans-serif;
@@ -29,13 +30,12 @@
       }
       .font-oswald { font-family: 'Oswald', sans-serif; }
       
-      /* Animações otimizadas para GPU */
       @keyframes scroll-vertical {
         0% { transform: translateY(0); }
         100% { transform: translateY(-50%); }
       }
       .animate-scroll-vertical { 
-        animation: scroll-vertical 30s linear infinite; 
+        animation: scroll-vertical 40s linear infinite; 
         will-change: transform;
       }
 
@@ -45,8 +45,13 @@
         display: flex; 
         align-items: center; 
         justify-content: center;
-        background: radial-gradient(circle at center, #111 0%, #000 100%);
+        background: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #000 100%);
       }
+
+      /* Custom Scrollbar for Admin */
+      .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 10px; }
     </style>
 
     <script type="importmap">
