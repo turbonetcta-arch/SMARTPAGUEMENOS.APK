@@ -70,10 +70,6 @@ const App: React.FC = () => {
       setIsRemoteMode(true);
     }
 
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsTvMode(true);
-    }
-
     const handleStorageChange = () => {
       const savedProducts = localStorage.getItem('smart_pague_menos_products');
       if (savedProducts) setProducts(JSON.parse(savedProducts));
@@ -81,11 +77,8 @@ const App: React.FC = () => {
       const savedSpeed = localStorage.getItem('smart_pague_menos_scroll_speed');
       if (savedSpeed) setScrollSpeed(parseInt(savedSpeed));
 
-      const savedPartners = localStorage.getItem('smart_pague_menos_partners');
-      if (savedPartners) setPartners(JSON.parse(savedPartners));
-
-      const savedPartnersEnabled = localStorage.getItem('smart_pague_menos_partners_enabled');
-      if (savedPartnersEnabled) setIsPartnersEnabled(savedPartnersEnabled === 'true');
+      const savedTheme = localStorage.getItem('smart_pague_menos_theme');
+      if (savedTheme) setTheme(JSON.parse(savedTheme));
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -99,6 +92,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('smart_pague_menos_scroll_speed', scrollSpeed.toString());
   }, [scrollSpeed]);
+
+  useEffect(() => {
+    localStorage.setItem('smart_pague_menos_theme', JSON.stringify(theme));
+  }, [theme]);
 
   const handleUserActivity = () => {
     if (isRemoteMode) return;
@@ -134,18 +131,15 @@ const App: React.FC = () => {
     const projectedW = isPortraitMode ? contentH : contentW;
     const projectedH = isPortraitMode ? contentW : contentH;
 
-    let targetSX = 1;
-    let targetSY = 1;
-    const effectiveFit = isTvMode ? 'stretch' : fitMode;
-
-    if (effectiveFit === 'stretch') {
-      targetSX = winW / projectedW;
-      targetSY = winH / projectedH;
-    } else {
-      const s = Math.min(winW / projectedW, winH / projectedH);
+    let targetSX = winW / projectedW;
+    let targetSY = winH / projectedH;
+    
+    if (fitMode === 'contain') {
+      const s = Math.min(targetSX, targetSY);
       targetSX = s;
       targetSY = s;
     }
+    
     setScaleX(targetSX);
     setScaleY(targetSY);
   };
@@ -154,13 +148,13 @@ const App: React.FC = () => {
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [rotation, isTvMode, fitMode, isRemoteMode]);
+  }, [rotation, fitMode, isRemoteMode]);
 
   useEffect(() => {
     if (isRemoteMode) return;
     const categoryTimer = setInterval(() => {
       setCurrentCategoryIndex((prev) => (prev + 1) % activeCategories.length);
-    }, 20000);
+    }, 15000);
     return () => clearInterval(categoryTimer);
   }, [activeCategories.length, isRemoteMode]);
 
@@ -179,14 +173,13 @@ const App: React.FC = () => {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      let contextPrompt = style === 'ad' 
-        ? `High-end luxury supermarket advertisement for ${product.name}. Professional food photography, cinematic lighting, gourmet presentation, 8k resolution. NO TEXT.`
-        : `Hyper-realistic professional studio product photography of ${product.name}, clean white minimalist background, super sharp focus, 8k.`;
+      const prompt = style === 'ad' 
+        ? `Ultra-premium commercial advertisement for ${product.name}. Cinematic lighting, professional food styling, gourmet presentation, high contrast, 8k resolution. NO TEXT ON IMAGE.`
+        : `Professional studio photography of ${product.name}, soft lighting, clean minimalist background, 8k resolution.`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: contextPrompt }] },
-        config: { imageConfig: { aspectRatio: "1:1" } },
+        contents: { parts: [{ text: prompt }] },
       });
 
       let generatedImageUrl = '';
@@ -198,16 +191,20 @@ const App: React.FC = () => {
           }
         }
       }
+      
       if (generatedImageUrl) {
         setProducts(prev => prev.map(p => p.id === product.id ? { ...p, imageUrl: generatedImageUrl } : p));
+      } else {
+        throw new Error("No image generated");
       }
     } catch (error: any) {
       console.error('Art Generation Error:', error);
-      if (error?.message?.includes('429') || error?.message?.includes('quota')) {
-        setAiError('Limite de IA atingido. Tente novamente mais tarde.');
+      if (error?.message?.includes('429') || error?.status === 429) {
+        setAiError("Limite de IA esgotado. Tente novamente em alguns minutos.");
       } else {
-        setAiError('Erro ao conectar com a IA. Verifique sua rede.');
+        setAiError("Erro ao gerar imagem. Tente novamente.");
       }
+      setTimeout(() => setAiError(null), 5000);
     } finally {
       setGeneratingIds(prev => {
         const next = new Set(prev);
@@ -243,41 +240,44 @@ const App: React.FC = () => {
     '--bg-color': theme.background,
     '--text-color': theme.text,
     '--panel-color': theme.panel,
+    '--base-scale': scaleX + zoomOffset,
+    '--base-rotation': `${rotation}deg`,
     backgroundColor: 'var(--bg-color)',
     color: 'var(--text-color)',
     position: 'absolute',
     left: '50%',
     top: '50%',
-    borderRadius: isTvMode ? '0' : '2rem',
-    boxShadow: isTvMode ? 'none' : '0 0 100px rgba(0,0,0,0.5)',
   } as React.CSSProperties;
 
   return (
-    <div className={`h-screen w-screen bg-black overflow-hidden relative transition-all duration-500 ${isTvMode ? 'cursor-none' : ''}`} onMouseMove={handleUserActivity}>
+    <div className="h-screen w-screen bg-black overflow-hidden relative" onMouseMove={handleUserActivity}>
       {aiError && (
-        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[1000] bg-red-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs shadow-2xl animate-bounce">
+        <div className="fixed top-10 left-1/2 -translate-x-1/2 z-[1000] bg-red-600 text-white px-8 py-4 rounded-full font-bold shadow-2xl animate-bounce">
           {aiError}
         </div>
       )}
-      <div ref={containerRef} style={appStyle} className={`flex flex-col overflow-hidden transition-all duration-700 ease-in-out ${isSpinning ? 'animate-spin-once' : ''}`}>
-        <header className="h-32 flex items-center justify-between px-10 border-b border-white/10 relative z-20" style={{ background: `linear-gradient(to r, var(--primary-color), var(--bg-color))` }}>
+
+      <div ref={containerRef} style={appStyle} className={`flex flex-col overflow-hidden transition-all duration-700 ${isSpinning ? 'animate-spin-once' : ''}`}>
+        <header className="h-32 flex items-center justify-between px-12 border-b border-white/10 relative z-20 shadow-2xl" style={{ backgroundColor: 'var(--primary-color)' }}>
           <div className="flex items-center gap-8">
-            <div className="relative w-28 h-28 bg-red-600 rounded-full border-4 border-white flex items-center justify-center shadow-2xl">
-              <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-black/10">
+               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary-color)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
             </div>
             <div className="flex flex-col">
-              <h1 className="text-6xl font-black leading-none font-oswald tracking-tighter uppercase italic" style={{ color: 'var(--text-color)' }}>SMART <span style={{ color: 'var(--accent-color)' }}>PAGUE MENOS</span></h1>
-              <p className="text-xl font-bold tracking-[0.3em] uppercase font-oswald opacity-80" style={{ color: 'var(--text-color)' }}>Açougue & Hortifruti</p>
+              <h1 className="text-6xl font-black font-oswald tracking-tighter uppercase italic leading-none">
+                SMART <span style={{ color: 'var(--accent-color)' }}>PAGUE MENOS</span>
+              </h1>
+              <p className="text-xl font-bold tracking-[0.4em] uppercase opacity-80 mt-1">Sua melhor escolha digital</p>
             </div>
           </div>
           <DigitalClock />
         </header>
 
-        <main className={`flex-1 flex overflow-hidden relative ${isPortraitMode ? 'flex-col' : 'flex-row'}`} style={{ backgroundColor: 'var(--bg-color)' }}>
-          <div className={`${isPortraitMode ? 'w-full h-[45%]' : 'w-[50%] h-full'} flex flex-col transition-all duration-700 ease-in-out border-white/5 border-r z-10`}>
+        <main className={`flex-1 flex overflow-hidden ${isPortraitMode ? 'flex-col' : 'flex-row'}`}>
+          <div className={`${isPortraitMode ? 'w-full h-1/2' : 'w-1/2 h-full'} border-r border-white/5`}>
             <PriceList products={products} currentCategory={currentCategory} scrollSpeed={scrollSpeed} />
           </div>
-          <div className={`${isPortraitMode ? 'w-full h-[55%]' : 'w-[50%] h-full'} relative overflow-hidden`}>
+          <div className={`${isPortraitMode ? 'w-full h-1/2' : 'w-1/2 h-full'} relative`}>
             {currentOffer && (
               <FeaturedOffer 
                 offer={currentOffer} 
@@ -289,81 +289,76 @@ const App: React.FC = () => {
           </div>
         </main>
 
-        {isPartnersEnabled && partners.length > 0 && (
-          <div className="h-32 bg-black border-t border-white/10 flex items-center overflow-hidden z-20">
-            <div className="flex whitespace-nowrap animate-scroll items-center gap-32 px-12">
-              {[1, 2, 3, 4].map((group) => (
-                <React.Fragment key={group}>
-                  {partners.map((partner) => (
-                    <div key={`${partner.id}-${group}`} className="flex items-center gap-10 group/partner">
-                      <div className="h-24 w-auto flex items-center justify-center p-3 bg-white rounded-3xl shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                        <img src={partner.imageUrl} alt={partner.name} className="h-full w-auto object-contain" />
+        {isPartnersEnabled && (
+          <div className="h-28 bg-black/50 border-t border-white/10 flex items-center overflow-hidden z-20">
+             <div className="flex whitespace-nowrap animate-scroll items-center gap-24 px-12">
+                {[1, 2, 3].map(group => (
+                  <React.Fragment key={group}>
+                    {partners.map(p => (
+                      <div key={`${p.id}-${group}`} className="flex items-center gap-6 opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
+                        <img src={p.imageUrl} className="h-16 w-auto object-contain" alt={p.name} />
+                        <span className="text-3xl font-black uppercase font-oswald text-white/40">{p.name}</span>
                       </div>
-                      <span className="text-white font-black text-7xl uppercase tracking-tighter drop-shadow-[0_4px_15px_rgba(0,0,0,0.9)]">
-                        {partner.name}
-                      </span>
-                    </div>
-                  ))}
-                </React.Fragment>
-              ))}
-            </div>
+                    ))}
+                  </React.Fragment>
+                ))}
+             </div>
           </div>
         )}
 
-        <footer className="h-14 bg-white flex items-center overflow-hidden z-20 shadow-[0_-15px_40px_rgba(0,0,0,0.5)]">
-          <div className="flex whitespace-nowrap animate-scroll items-center gap-12 px-8">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <React.Fragment key={i}>
-                <span className="font-black text-2xl uppercase tracking-widest flex items-center gap-4" style={{ color: 'var(--primary-color)' }}>
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary-color)' }}></span>
-                  SMART PAGUE MENOS: ECONOMIA E QUALIDADE NO MESMO LUGAR
+        <footer className="h-12 bg-white flex items-center overflow-hidden z-30 shadow-2xl">
+           <div className="flex whitespace-nowrap animate-scroll items-center gap-10 px-8">
+              {[1, 2, 3, 4, 5].map(i => (
+                <span key={i} className="text-black font-black text-xl uppercase tracking-widest italic flex items-center gap-4">
+                  <span className="w-2 h-2 rounded-full bg-red-600"></span>
+                  SMART PAGUE MENOS: ECONOMIA REAL TODOS OS DIAS • CARNES SELECIONADAS • HORTIFRUTI FRESCO • QUALIDADE PREMIUM • ACEITAMOS TODOS OS CARTÕES
                 </span>
-                <span className="text-black font-black text-2xl uppercase tracking-widest">
-                  CARNES FRESCAS TODOS OS DIAS • ACEITAMOS TODOS OS CARTÕES • FRUTAS FRESCAS • CARVÃO •
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
+              ))}
+           </div>
         </footer>
       </div>
 
-      <div className={`fixed bottom-16 right-8 z-[200] flex flex-col gap-5 transition-all duration-500 ${showControls ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20 pointer-events-none'}`}>
-        <button onClick={() => setRotation(prev => (prev + 90) % 360)} className="p-6 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-white border border-white/10 shadow-2xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg></button>
-        <button onClick={() => setIsAdminOpen(true)} className="p-6 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-white/40 hover:text-white border border-white/10 shadow-2xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <div className={`fixed bottom-16 right-10 z-[100] flex flex-col gap-4 transition-all duration-500 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+        <button onClick={() => setRotation(prev => (prev + 90) % 360)} className="p-5 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-white border border-white/10 shadow-2xl">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
+        </button>
+        <button onClick={() => setIsAdminOpen(true)} className="p-5 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-white border border-white/10 shadow-2xl">
+           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
       </div>
 
       {isAdminOpen && (
         <AdminMenu 
-          products={products} 
-          theme={theme} 
-          isTvMode={isTvMode} 
-          zoomOffset={zoomOffset} 
-          fitMode={fitMode} 
-          scrollSpeed={scrollSpeed} 
-          partners={partners} 
-          isPartnersEnabled={isPartnersEnabled} 
-          onUpdatePartners={setPartners} 
-          onTogglePartners={() => setIsPartnersEnabled(!isPartnersEnabled)} 
-          onUpdateScrollSpeed={setScrollSpeed} 
-          onUpdateFitMode={setFitMode} 
-          onUpdateZoom={setZoomOffset} 
-          isHortifrutiEnabled={isHortifrutiEnabled} 
-          onToggleHortifruti={() => setIsHortifrutiEnabled(!isHortifrutiEnabled)} 
-          onToggleTvMode={() => setIsTvMode(!isTvMode)} 
-          onUpdateTheme={setTheme} 
-          onClose={() => setIsAdminOpen(false)} 
-          onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))} 
-          onUpdateImage={(id, img) => setProducts(prev => prev.map(item => item.id === id ? {...item, imageUrl: img} : item))} 
-          onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))} 
-          onBulkToggleOffers={(off) => setProducts(prev => prev.map(item => ({...item, isOffer: off})))} 
-          onAddProduct={(p) => setProducts(prev => [...prev, p])} 
+          products={products}
+          partners={partners}
+          onUpdatePartners={setPartners}
+          theme={theme}
+          isTvMode={isTvMode}
+          zoomOffset={zoomOffset}
+          fitMode={fitMode}
+          onUpdateFitMode={setFitMode}
+          onUpdateZoom={setZoomOffset}
+          isHortifrutiEnabled={isHortifrutiEnabled}
+          onToggleHortifruti={() => setIsHortifrutiEnabled(!isHortifrutiEnabled)}
+          onToggleTvMode={() => setIsTvMode(!isTvMode)}
+          onUpdateTheme={setTheme}
+          onClose={() => setIsAdminOpen(false)}
+          onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))}
+          onUpdateImage={(id, img) => setProducts(prev => prev.map(item => item.id === id ? {...item, imageUrl: img} : item))}
+          onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))}
+          onBulkToggleOffers={(isOffer) => setProducts(prev => prev.map(item => ({...item, isOffer})))}
+          onAddProduct={(p) => setProducts(prev => [...prev, p])}
           onDeleteProduct={(id) => setProducts(prev => prev.filter(p => p.id !== id))}
-          onRotate90={() => setRotation(prev => (prev + 90) % 360)} 
-          onSpin360={() => { setIsSpinning(true); setTimeout(() => setIsSpinning(false), 1200); }} 
-          currentRotation={rotation} 
-          isSpinning={isSpinning} 
+          onRotate90={() => setRotation(prev => (prev + 90) % 360)}
+          onSpin360={() => { setIsSpinning(true); setTimeout(() => setIsSpinning(false), 1200); }}
+          currentRotation={rotation}
+          isSpinning={isSpinning}
           onManualGenerateArt={handleGenerateArt}
           generatingIds={generatingIds}
+          scrollSpeed={scrollSpeed}
+          onUpdateScrollSpeed={setScrollSpeed}
+          isPartnersEnabled={isPartnersEnabled}
+          onTogglePartners={() => setIsPartnersEnabled(!isPartnersEnabled)}
         />
       )}
     </div>

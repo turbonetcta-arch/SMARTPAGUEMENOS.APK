@@ -1,18 +1,26 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Butcher Shop Digital Media</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Smart Pague Menos - Mídia Digital</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#b91c1c">
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Oswald:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
       body {
         font-family: 'Inter', sans-serif;
         background-color: #000;
         margin: 0;
         overflow: hidden;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
       }
       .font-oswald {
         font-family: 'Oswald', sans-serif;
@@ -38,8 +46,8 @@
         50% { filter: drop-shadow(0 0 50px rgba(220, 38, 38, 0.8)); }
       }
       @keyframes spin360 {
-        from { transform: scale(var(--base-scale)) rotate(var(--base-rotation)); }
-        to { transform: scale(var(--base-scale)) rotate(calc(var(--base-rotation) + 360deg)); }
+        from { transform: translate(-50%, -50%) scale(var(--base-scale)) rotate(var(--base-rotation)); }
+        to { transform: translate(-50%, -50%) scale(var(--base-scale)) rotate(calc(var(--base-rotation) + 360deg)); }
       }
       .animate-scroll {
         animation: scroll 30s linear infinite;
