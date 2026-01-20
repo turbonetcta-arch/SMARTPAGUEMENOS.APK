@@ -3,7 +3,7 @@ export enum Category {
   BOVINOS = 'BOVINOS',
   SUINOS = 'SUÍNOS',
   AVES = 'AVES',
-  FRUTAS = 'FRUTAS',
+  FRUTAS = 'HORTIFRUTI',
   BEBIDAS = 'BEBIDAS GELADAS',
   ESPECIAIS = 'CORTES ESPECIAIS'
 }
@@ -14,6 +14,15 @@ export interface ThemeSettings {
   background: string;
   text: string;
   panel: string;
+}
+
+export interface MediaConfig {
+  marqueeText: string;
+  logoUrl: string;
+  bgImageUrl: string;
+  slideDuration: number;
+  listScrollSpeed: number;
+  isNodeMode: boolean; // Monitor de logs do sistema
 }
 
 export interface Partner {

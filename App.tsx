@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Category, Product, ThemeSettings, Partner } from './types';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Category, Product, MediaConfig, Partner } from './types';
 import { INITIAL_PRODUCTS, CATEGORIES_CYCLE } from './constants';
 import PriceList from './components/PriceList';
 import FeaturedOffer from './components/FeaturedOffer';
@@ -8,230 +8,227 @@ import DigitalClock from './components/DigitalClock';
 import AdminMenu from './components/AdminMenu';
 import RemoteControl from './components/RemoteControl';
 
+const NodeConsole: React.FC<{ active: boolean, logs: string[] }> = ({ active, logs }) => {
+  if (!active) return null;
+  return (
+    <div className="fixed bottom-10 left-10 z-[500] w-96 bg-black/90 backdrop-blur-2xl border border-green-500/30 rounded-[2rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,1)] animate-fade-in font-mono pointer-events-none ring-1 ring-white/10">
+      <div className="bg-green-500/10 px-5 py-3 border-b border-green-500/20 flex justify-between items-center">
+        <span className="text-[10px] text-green-400 font-bold uppercase tracking-widest flex items-center gap-2">
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+          SMART_SYSTEM_v5.2
+        </span>
+        <span className="text-[9px] text-zinc-500">LIVE_FEED</span>
+      </div>
+      <div className="p-5 h-60 overflow-hidden flex flex-col-reverse text-[10px] gap-2 leading-relaxed">
+        {logs.map((log, i) => (
+          <div key={i} className={`${log.includes('ERR') ? 'text-red-400' : log.includes('SYNC') ? 'text-blue-400' : 'text-green-500/80'}`}>
+            <span className="opacity-30 mr-2">[{new Date().toLocaleTimeString('pt-BR', {hour12: false})}]</span>
+            <span className="font-bold">{log.split(':')[0]}</span>
+            <span className="ml-1 opacity-90">{log.split(':')[1]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem('smart_products_v2');
+    const saved = localStorage.getItem('smart_products_v4');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
   });
 
   const [partners, setPartners] = useState<Partner[]>(() => {
-    const saved = localStorage.getItem('smart_partners_v2');
+    const saved = localStorage.getItem('smart_partners_v4');
     return saved ? JSON.parse(saved) : [
       { id: 'p1', name: 'FRIBOI', imageUrl: 'https://seeklogo.com/images/F/friboi-logo-4E1564C79F-seeklogo.com.png' },
       { id: 'p2', name: 'SEARA', imageUrl: 'https://seeklogo.com/images/S/seara-logo-C7A4A0B7C1-seeklogo.com.png' }
     ];
   });
 
-  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
-  const [activeOfferIndex, setActiveOfferIndex] = useState(0);
-  const [activePartnerIndex, setActivePartnerIndex] = useState(0);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isHortifrutiEnabled, setIsHortifrutiEnabled] = useState(true);
-  const [isRemoteMode, setIsRemoteMode] = useState(false);
-  
-  const [theme, setTheme] = useState<ThemeSettings>({
-    primary: '#b91c1c',
-    accent: '#facc15',
-    background: '#000000',
-    text: '#ffffff',
-    panel: 'rgba(12, 12, 14, 0.85)'
+  const [mediaConfig, setMediaConfig] = useState<MediaConfig>(() => {
+    const saved = localStorage.getItem('smart_media_v4');
+    return saved ? JSON.parse(saved) : {
+      marqueeText: 'QUALIDADE E ECONOMIA É NO SMART PAGUE MENOS • CARNES SELECIONADAS COM PROCEDÊNCIA GARANTIDA •',
+      logoUrl: '',
+      bgImageUrl: '',
+      slideDuration: 20,
+      listScrollSpeed: 40,
+      isNodeMode: true
+    };
   });
 
-  const [rotation, setRotation] = useState(0);
-  const [showControls, setShowControls] = useState(true);
-  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
-  const controlsTimeoutRef = useRef<number | null>(null);
+  const [logs, setLogs] = useState<string[]>(['CORE: Media engine started', 'RENDER: Scale normalizer active', 'UHD: Hardware sync ok']);
+  const addLog = (msg: string) => setLogs(prev => [msg, ...prev].slice(0, 30));
+
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isTvMode, setIsTvMode] = useState(true);
+  const [rotation, setRotation] = useState(0); 
+  const [scale, setScale] = useState(1);
+  const [isRemoteMode, setIsRemoteMode] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const normalizedRotation = Math.abs(rotation % 180);
+  const isPortraitLayout = normalizedRotation === 90;
+
+  const handleResize = useCallback(() => {
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+    const targetW = isPortraitLayout ? 1080 : 1920;
+    const targetH = isPortraitLayout ? 1920 : 1080;
+    const s = Math.min(winW / targetW, winH / targetH);
+    setScale(s);
+  }, [isPortraitLayout]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'remote') {
-      setIsRemoteMode(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    if (params.get('mode') === 'remote') setIsRemoteMode(true);
+    
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [handleResize]);
 
   useEffect(() => {
-    localStorage.setItem('smart_products_v2', JSON.stringify(products));
-  }, [products]);
+    localStorage.setItem('smart_products_v4', JSON.stringify(products));
+    localStorage.setItem('smart_partners_v4', JSON.stringify(partners));
+    localStorage.setItem('smart_media_v4', JSON.stringify(mediaConfig));
+  }, [products, partners, mediaConfig]);
 
-  useEffect(() => {
-    localStorage.setItem('smart_partners_v2', JSON.stringify(partners));
-  }, [partners]);
-
-  const handleUserActivity = () => {
-    if (isRemoteMode) return;
-    setShowControls(true);
-    if (controlsTimeoutRef.current) window.clearTimeout(controlsTimeoutRef.current);
-    controlsTimeoutRef.current = window.setTimeout(() => setShowControls(false), 3000);
-  };
-
-  const activeCategories = useMemo(() => {
-    return CATEGORIES_CYCLE.filter(cat => cat === Category.FRUTAS ? isHortifrutiEnabled : true);
-  }, [isHortifrutiEnabled]);
-
+  const activeCategories = useMemo(() => CATEGORIES_CYCLE, []);
   const currentCategory = activeCategories[currentCategoryIndex % activeCategories.length];
-  const actualOffers = products.filter(p => p.isOffer);
-  const hasValidOffers = actualOffers.length > 0;
 
   useEffect(() => {
-    if (isRemoteMode) return;
-    const categoryTimer = setInterval(() => {
-      setCurrentCategoryIndex((prev) => (prev + 1) % activeCategories.length);
-    }, 20000);
-    return () => clearInterval(categoryTimer);
-  }, [activeCategories.length, isRemoteMode]);
+    setIsTransitioning(true);
+    const timer = setTimeout(() => setIsTransitioning(false), 900);
+    if (mediaConfig.isNodeMode) addLog(`SYNC: Category switch -> ${currentCategory}`);
+    return () => clearTimeout(timer);
+  }, [currentCategoryIndex, mediaConfig.isNodeMode, currentCategory]);
 
   useEffect(() => {
-    if (isRemoteMode) return;
     const timer = setInterval(() => {
-      if (hasValidOffers) {
-        setActiveOfferIndex((prev) => (prev + 1) % actualOffers.length);
-      } else if (partners.length > 0) {
-        setActivePartnerIndex((prev) => (prev + 1) % partners.length);
-      }
-    }, 10000);
+      setCurrentCategoryIndex((prev) => (prev + 1) % activeCategories.length);
+    }, mediaConfig.slideDuration * 1000);
     return () => clearInterval(timer);
-  }, [actualOffers.length, partners.length, hasValidOffers, isRemoteMode]);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-    else document.exitFullscreen();
-  };
+  }, [activeCategories.length, mediaConfig.slideDuration]);
 
   if (isRemoteMode) {
     return (
       <RemoteControl 
-        products={products}
-        onUpdateProducts={setProducts}
-        onRotate={() => setRotation(prev => (prev + 90) % 360)}
-        onToggleCategory={() => setCurrentCategoryIndex(prev => (prev + 1) % activeCategories.length)}
+        products={products} 
+        onUpdateProducts={setProducts} 
+        onRotate={() => setRotation(r => (r + 90) % 360)} 
+        onToggleCategory={() => setCurrentCategoryIndex(i => (i + 1) % activeCategories.length)} 
       />
     );
   }
 
-  const isPortrait = rotation === 90 || rotation === 270;
-  const baseWidth = 1920;
-  const baseHeight = 1080;
-  const targetWidth = isPortrait ? baseHeight : baseWidth;
-  const targetHeight = isPortrait ? baseWidth : baseHeight;
-  const scaleX = windowSize.width / targetWidth;
-  const scaleY = windowSize.height / targetHeight;
-  const autoScale = Math.min(scaleX, scaleY);
-
-  const appStyle = {
-    '--primary-color': theme.primary,
-    '--accent-color': theme.accent,
-    '--bg-color': theme.background,
-    '--text-color': theme.text,
-    '--panel-color': theme.panel,
-    backgroundColor: 'var(--bg-color)',
-    color: 'var(--text-color)',
-    width: `${targetWidth}px`,
-    height: `${targetHeight}px`,
-    transform: `translate(-50%, -50%) scale(${autoScale}) rotate(${rotation}deg)`,
-    position: 'absolute',
-    left: '50%',
-    top: '50%',
-    transformOrigin: 'center center',
-  } as React.CSSProperties;
+  const baseWidth = isPortraitLayout ? 1080 : 1920;
+  const baseHeight = isPortraitLayout ? 1920 : 1080;
 
   return (
     <div 
-      className="h-screen w-screen bg-black overflow-hidden relative cursor-none" 
-      onMouseMove={handleUserActivity}
-      onClick={handleUserActivity}
+      className={`h-screen w-screen bg-[#010101] flex items-center justify-center overflow-hidden relative ${isTvMode ? 'cursor-none' : ''}`}
+      onMouseMove={() => { if (isTvMode) { setIsTvMode(false); setTimeout(() => setIsTvMode(true), 10000); } }}
     >
-      <div style={appStyle} className="flex flex-col overflow-hidden transition-transform duration-500 ease-out">
-        
-        <header className="h-32 flex items-center justify-between px-10 z-20 border-b-4 border-black/20" style={{ background: `linear-gradient(to r, var(--primary-color), var(--bg-color))` }}>
-          <div className="flex items-center gap-8">
-            <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center shadow-2xl rotate-3">
-               <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" strokeWidth="3"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+      {/* Background FX */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,rgba(185,28,28,0.1),transparent_60%)] pointer-events-none"></div>
+
+      <div 
+        style={{
+          width: `${baseWidth}px`,
+          height: `${baseHeight}px`,
+          transform: `scale(${scale}) rotate(${rotation}deg)`,
+          transformOrigin: 'center center',
+          backgroundImage: mediaConfig.bgImageUrl ? `url(${mediaConfig.bgImageUrl})` : 'none',
+          backgroundColor: '#000',
+        }} 
+        className={`flex flex-col relative transition-all duration-[1200ms] cubic-bezier(0.25, 1, 0.5, 1) border border-white/5 shadow-4xl`}
+      >
+        {/* HEADER UHD */}
+        <header className="h-[20%] flex items-center justify-between px-28 bg-black/95 backdrop-blur-3xl border-b-4 border-white/10 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 via-transparent to-amber-600/10"></div>
+          
+          <div className="flex items-center gap-16 relative z-10">
+            <div className="w-40 h-40 bg-white rounded-[3rem] flex items-center justify-center shadow-2xl p-7 ring-2 ring-white/10">
+              {mediaConfig.logoUrl ? <img src={mediaConfig.logoUrl} className="max-w-full max-h-full object-contain" /> : <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" strokeWidth="3"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>}
             </div>
             <div>
-              <h1 className="text-6xl font-black font-oswald italic tracking-tighter text-white uppercase leading-none">
-                SMART <span className="text-yellow-400">PAGUE MENOS</span>
+              <h1 className="text-[7.5rem] font-black font-oswald italic tracking-tighter uppercase leading-[0.8] text-white">
+                  SMART <span className="text-yellow-400">PAGUE MENOS</span>
               </h1>
-              <p className="text-xl font-bold uppercase tracking-[0.4em] opacity-80 text-white mt-1">Mídia Digital Inteligente</p>
+              <div className="flex items-center gap-5 mt-2">
+                <div className="px-4 py-1 bg-red-600 rounded-xl animate-pulse">
+                    <span className="text-[10px] font-black text-white tracking-[0.3em] uppercase">SINAL UHD</span>
+                </div>
+                <span className="text-xs font-black uppercase tracking-[0.8em] text-white/30">MÍDIA DIGITAL</span>
+              </div>
             </div>
           </div>
           <DigitalClock />
         </header>
 
-        <main className={`flex-1 flex overflow-hidden ${isPortrait ? 'flex-col' : 'flex-row'}`}>
-          <div className={`${isPortrait ? 'w-full h-[42%]' : 'w-[45%] h-full'} z-10 border-r border-white/5`}>
+        {/* CONTENT GRID */}
+        <main className={`h-[65%] flex overflow-hidden ${isPortraitLayout ? 'flex-col' : 'flex-row'}`}>
+          <div className={`h-full ${isPortraitLayout ? 'w-full h-[55%]' : 'w-[55%]'} border-r-4 border-white/10 relative overflow-hidden`}>
+            <div className={`absolute inset-0 bg-black z-40 transition-opacity duration-1000 ${isTransitioning ? 'opacity-40' : 'opacity-0'}`}></div>
             <PriceList products={products} currentCategory={currentCategory} />
           </div>
-          
-          <div className={`${isPortrait ? 'w-full h-[58%]' : 'w-[55%] h-full'} relative bg-black`}>
-            {hasValidOffers ? (
-              <FeaturedOffer offer={actualOffers[activeOfferIndex % actualOffers.length]} />
-            ) : partners.length > 0 ? (
-              <div className="w-full h-full flex flex-col items-center justify-center p-20 animate-fade-in text-center bg-zinc-950">
-                <div className="bg-red-600 text-white px-10 py-3 rounded-full font-black text-2xl uppercase tracking-[0.3em] mb-12 shadow-2xl">Parceiro Oficial</div>
-                <div className="relative w-full max-w-2xl aspect-video bg-white rounded-[4rem] p-16 shadow-[0_50px_100px_rgba(0,0,0,0.8)] flex items-center justify-center overflow-hidden border-[12px] border-zinc-900">
-                   <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent animate-shine"></div>
-                   <img src={partners[activePartnerIndex % partners.length].imageUrl} alt="Partner" className="max-w-full max-h-full object-contain relative z-10" />
-                </div>
-                <h2 className="text-7xl font-black text-white mt-12 font-oswald uppercase tracking-tighter">{partners[activePartnerIndex % partners.length].name}</h2>
-              </div>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <p className="text-white/20 font-black text-4xl uppercase font-oswald text-center">Configuração Pendente</p>
-              </div>
-            )}
+          <div className={`h-full ${isPortraitLayout ? 'w-full h-[45%]' : 'w-[45%]'} bg-black`}>
+             <FeaturedOffer offer={products.find(p => p.isOffer && p.category === currentCategory) || products.find(p => p.isOffer) || products[0]} />
           </div>
         </main>
 
-        <footer className="h-24 bg-white flex items-center overflow-hidden z-20 border-t-4 border-black/10">
-          <div className="flex whitespace-nowrap animate-scroll items-center gap-20 px-10">
-            {[1, 2, 3].map((g) => (
-              <React.Fragment key={g}>
-                <span className="text-red-700 font-black text-4xl uppercase italic">ECONOMIA TODO DIA NO SMART PAGUE MENOS •</span>
-                {partners.map(p => (
-                  <div key={`${p.id}-${g}`} className="flex items-center gap-6 bg-zinc-100 px-8 py-3 rounded-3xl border border-black/5">
-                    <img src={p.imageUrl} className="h-12 w-auto object-contain" />
-                    <span className="text-black font-black text-3xl uppercase tracking-tight">{p.name}</span>
-                  </div>
-                ))}
-              </React.Fragment>
-            ))}
+        {/* FOOTER MARQUEE */}
+        <footer className="h-[15%] flex items-center overflow-hidden bg-red-600 border-t-8 border-white relative">
+          <div className="h-full bg-black flex items-center px-24 z-20 border-r-8 border-white/30">
+             <span className="text-6xl font-black font-oswald text-yellow-400 italic uppercase tracking-tighter shadow-2xl">OFERTAS</span>
+          </div>
+          <div className="flex-1 overflow-hidden h-full flex items-center bg-red-600">
+            <div className="flex whitespace-nowrap animate-scroll items-center gap-48">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex items-center gap-48">
+                  <span className="font-black text-6xl uppercase italic tracking-tighter text-white drop-shadow-lg">
+                    {mediaConfig.marqueeText}
+                  </span>
+                  <div className="w-10 h-10 bg-white rotate-45"></div>
+                </div>
+              ))}
+            </div>
           </div>
         </footer>
       </div>
 
-      {showControls && (
-        <div className="fixed bottom-10 right-10 z-[300] flex flex-col gap-4 animate-fade-in pointer-events-auto">
-          <button onClick={() => setRotation(prev => (prev + 90) % 360)} className="p-6 bg-white/10 backdrop-blur-xl text-white rounded-3xl shadow-3xl hover:bg-white/20 transition-all border border-white/10">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-          </button>
-          <button onClick={() => setIsAdminOpen(true)} className="p-6 bg-red-600 rounded-3xl text-white shadow-3xl hover:scale-110 active:scale-95 transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
+      <NodeConsole active={mediaConfig.isNodeMode} logs={logs} />
+
+      {!isTvMode && (
+        <div className="fixed bottom-10 right-10 z-[300] flex flex-col gap-4 scale-125">
+           <button onClick={() => setRotation(r => (r + 90) % 360)} className="p-6 bg-white/10 backdrop-blur-xl text-white rounded-3xl border border-white/10 shadow-3xl hover:bg-white/20 transition-all">
+             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+           </button>
+           <button onClick={() => setIsAdminOpen(true)} className="p-6 bg-red-600 text-white rounded-3xl shadow-3xl hover:scale-110 active:scale-95 transition-all">
+             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+           </button>
         </div>
       )}
 
       {isAdminOpen && (
         <AdminMenu 
-          products={products} theme={theme} isTvMode={false} zoomOffset={0} fitMode="stretch" 
-          partners={partners} onUpdatePartners={setPartners}
-          onUpdateFitMode={()=>{}} onUpdateZoom={()=>{}} isHortifrutiEnabled={isHortifrutiEnabled}
-          onToggleHortifruti={() => setIsHortifrutiEnabled(!isHortifrutiEnabled)} onToggleTvMode={toggleFullscreen}
-          onUpdateTheme={setTheme} onClose={() => setIsAdminOpen(false)} 
+          products={products} partners={partners} onUpdatePartners={setPartners}
+          theme={{primary: '#b91c1c', accent: '#facc15', background: '#000', text: '#fff', panel: 'rgba(0,0,0,0.8)'}}
           onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))}
           onUpdateImage={(id, img) => setProducts(prev => prev.map(item => item.id === id ? {...item, imageUrl: img} : item))}
-          onUpdateName={(id, name) => setProducts(prev => prev.map(item => item.id === id ? {...item, name} : item))}
           onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))}
-          onBulkToggleOffers={(off) => setProducts(prev => prev.map(item => ({...item, isOffer: off})))}
           onAddProduct={(p) => setProducts(prev => [...prev, p])}
           onDeleteProduct={(id) => setProducts(prev => prev.filter(p => p.id !== id))}
-          onRotate90={() => setRotation(prev => (prev + 90) % 360)}
-          onSpin360={() => {}} currentRotation={rotation} isSpinning={false}
+          onClose={() => setIsAdminOpen(false)}
+          mediaConfig={mediaConfig}
+          onUpdateMedia={setMediaConfig}
+          // Props extras do Admin original que mantivemos compatibilidade
+          isTvMode={isTvMode} zoomOffset={0} fitMode="stretch" onUpdateFitMode={()=>{}} onUpdateZoom={()=>{}}
+          isHortifrutiEnabled={true} onToggleHortifruti={()=>{}} onToggleTvMode={()=>{}} onUpdateTheme={()=>{}}
+          onBulkToggleOffers={()=>{}} onRotate90={()=>{}} onSpin360={()=>{}} currentRotation={rotation} isSpinning={false}
         />
       )}
     </div>
