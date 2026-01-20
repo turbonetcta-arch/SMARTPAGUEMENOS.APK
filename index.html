@@ -1,36 +1,59 @@
 
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>SMART PAGUE MENOS | ULTRA DIGITAL SIGNAGE</title>
-    
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💎</text></svg>">
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Oswald:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    
-    <link rel="stylesheet" href="./style.css">
-
-    <script type="importmap">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Smart Pague Menos - AI Media System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Oswald:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --primary-color: #b91c1c;
+        --accent-color: #facc15;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #000;
+        margin: 0;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+        -webkit-font-smoothing: antialiased;
+      }
+      .font-oswald { font-family: 'Oswald', sans-serif; }
+      .font-bebas { font-family: 'Bebas Neue', sans-serif; }
+      
+      @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+      @keyframes scroll-vertical { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
+      @keyframes shine { 0% { transform: translateX(-100%) rotate(45deg); } 100% { transform: translateX(200%) rotate(45deg); } }
+      @keyframes zoom-price { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); filter: brightness(1.2); } }
+      @keyframes fade-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+      
+      .animate-scroll { animation: scroll 50s linear infinite; }
+      .animate-scroll-vertical { animation: scroll-vertical 40s linear infinite; }
+      .animate-zoom-price { animation: zoom-price 2s ease-in-out infinite; }
+      .animate-shine { animation: shine 4s infinite; }
+      .animate-fade-in { animation: fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      
+      .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+      
+      * { -webkit-tap-highlight-color: transparent; outline: none; }
+    </style>
+  <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.3",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@tailwindcss/vite": "https://esm.sh/@tailwindcss/vite@^4.1.18"
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
   }
 }
 </script>
-  </head>
-  <body class="bg-black relative overflow-hidden w-screen h-screen m-0 p-0">
-    <!-- Cinematic Grain Overlay -->
-    <div class="fixed inset-0 pointer-events-none z-[999] opacity-[0.04] mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
-    <!-- Scanline Effect -->
-    <div class="fixed inset-0 pointer-events-none z-[998] scanline-overlay opacity-[0.15]"></div>
-    <div id="root" class="w-full h-full flex items-center justify-center"></div>
-    <script type="module" src="./index.tsx"></script>
+</head>
+  <body>
+    <div id="root"></div>
   </body>
 </html>
