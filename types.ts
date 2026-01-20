@@ -22,7 +22,8 @@ export interface MediaConfig {
   bgImageUrl: string;
   slideDuration: number;
   listScrollSpeed: number;
-  isNodeMode: boolean; // Monitor de logs do sistema
+  isJsMode: boolean;
+  isNodeMode: boolean; // Novo: Ativa o monitor de sistema simulado Node.js
 }
 
 export interface Partner {
