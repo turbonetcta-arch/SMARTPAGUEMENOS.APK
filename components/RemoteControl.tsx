@@ -25,7 +25,7 @@ const RemoteControl: React.FC<RemoteControlProps> = ({
     <div className="min-h-screen bg-zinc-950 text-white p-6 font-inter pb-32">
       <header className="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
         <div>
-          <h1 className="text-2xl font-black font-oswald tracking-tighter text-indigo-400">REMOTE PANEL</h1>
+          <h1 className="text-2xl font-black font-oswald tracking-tighter text-indigo-400">PAINEL REMOTO</h1>
           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Controle Smart Pague Menos</p>
         </div>
         <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
@@ -34,27 +34,27 @@ const RemoteControl: React.FC<RemoteControlProps> = ({
       {/* Seção de Ajustes de Painel */}
       <div className="mb-10 bg-indigo-950/20 border border-indigo-500/20 rounded-3xl p-6 space-y-6">
         <div>
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-4">Ajustes do Painel</h3>
-          <div className="space-y-6">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                 <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">Velocidade da Lista</span>
-                 <span className="text-indigo-400 font-black">{scrollSpeed}s</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[8px] font-black uppercase text-zinc-600">Rápido</span>
-                <input 
-                  type="range" 
-                  min="5" 
-                  max="120" 
-                  step="1" 
-                  value={scrollSpeed} 
-                  onChange={(e) => onUpdateScrollSpeed(parseInt(e.target.value))} 
-                  className="flex-1 accent-indigo-500 h-8" 
-                />
-                <span className="text-[8px] font-black uppercase text-zinc-600">Lento</span>
-              </div>
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-4">Velocidade da Lista</h3>
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <button onClick={() => onUpdateScrollSpeed(10)} className={`py-3 rounded-xl font-black text-[10px] uppercase transition-all ${scrollSpeed <= 15 ? 'bg-red-600' : 'bg-black text-zinc-600'}`}>Rápido</button>
+            <button onClick={() => onUpdateScrollSpeed(30)} className={`py-3 rounded-xl font-black text-[10px] uppercase transition-all ${scrollSpeed > 15 && scrollSpeed <= 45 ? 'bg-yellow-500 text-black' : 'bg-black text-zinc-600'}`}>Normal</button>
+            <button onClick={() => onUpdateScrollSpeed(60)} className={`py-3 rounded-xl font-black text-[10px] uppercase transition-all ${scrollSpeed > 45 ? 'bg-indigo-600' : 'bg-black text-zinc-600'}`}>Lento</button>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+               <span className="text-[8px] font-black uppercase text-zinc-500">Ajuste Fino</span>
+               <span className="text-indigo-400 font-black">{scrollSpeed}s</span>
             </div>
+            <input 
+              type="range" 
+              min="5" 
+              max="120" 
+              step="1" 
+              value={scrollSpeed} 
+              onChange={(e) => onUpdateScrollSpeed(parseInt(e.target.value))} 
+              className="w-full accent-indigo-500" 
+            />
           </div>
         </div>
 
@@ -77,7 +77,9 @@ const RemoteControl: React.FC<RemoteControlProps> = ({
         {products.map(product => (
           <div key={product.id} className="bg-zinc-900 rounded-3xl p-5 border border-white/5 shadow-xl">
             <div className="flex items-center gap-4 mb-4">
-              <img src={product.imageUrl || 'https://via.placeholder.com/100'} className="w-14 h-14 rounded-xl object-cover" />
+              <div className="w-14 h-14 rounded-xl overflow-hidden bg-zinc-800 flex-shrink-0">
+                {product.imageUrl && <img src={product.imageUrl} className="w-full h-full object-cover" />}
+              </div>
               <div className="flex-1 overflow-hidden">
                 <h3 className="font-black font-oswald uppercase text-lg truncate leading-none">{product.name}</h3>
                 <span className="text-[9px] font-bold text-zinc-500 uppercase">{product.category}</span>
@@ -96,7 +98,7 @@ const RemoteControl: React.FC<RemoteControlProps> = ({
                 <input 
                   type="number" 
                   step="0.01" 
-                  value={product.price}
+                  value={product.price || ''}
                   onChange={(e) => onUpdatePrice(product.id, parseFloat(e.target.value))}
                   className="w-full bg-black rounded-2xl py-4 pl-10 pr-4 font-black text-xl outline-none focus:ring-2 ring-indigo-500 transition-all"
                 />
@@ -108,10 +110,6 @@ const RemoteControl: React.FC<RemoteControlProps> = ({
           </div>
         ))}
       </div>
-
-      <footer className="mt-12 text-center text-[10px] text-zinc-600 font-black uppercase tracking-[0.3em]">
-        Conectado ao Monitor Principal
-      </footer>
     </div>
   );
 };

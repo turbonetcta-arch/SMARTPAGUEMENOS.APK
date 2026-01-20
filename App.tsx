@@ -40,7 +40,8 @@ const App: React.FC = () => {
   const [activeOfferIndex, setActiveOfferIndex] = useState(0);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isHortifrutiEnabled, setIsHortifrutiEnabled] = useState(true);
-  const [isGeneratingArt, setIsGeneratingArt] = useState(false);
+  const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+  const [aiError, setAiError] = useState<string | null>(null);
   
   const [theme, setTheme] = useState<ThemeSettings>({
     primary: '#b91c1c',
@@ -65,7 +66,13 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('remote') === 'true') setIsRemoteMode(true);
+    if (params.get('remote') === 'true' || params.get('mode') === 'remote') {
+      setIsRemoteMode(true);
+    }
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsTvMode(true);
+    }
 
     const handleStorageChange = () => {
       const savedProducts = localStorage.getItem('smart_pague_menos_products');
@@ -93,14 +100,6 @@ const App: React.FC = () => {
     localStorage.setItem('smart_pague_menos_scroll_speed', scrollSpeed.toString());
   }, [scrollSpeed]);
 
-  useEffect(() => {
-    localStorage.setItem('smart_pague_menos_partners', JSON.stringify(partners));
-  }, [partners]);
-
-  useEffect(() => {
-    localStorage.setItem('smart_pague_menos_partners_enabled', isPartnersEnabled.toString());
-  }, [isPartnersEnabled]);
-
   const handleUserActivity = () => {
     if (isRemoteMode) return;
     setShowControls(true);
@@ -122,7 +121,6 @@ const App: React.FC = () => {
   }, [isHortifrutiEnabled]);
 
   const currentCategory = activeCategories[currentCategoryIndex % activeCategories.length];
-  
   const actualOffers = products.filter(p => p.isOffer);
   const categoryProducts = products.filter(p => p.category === currentCategory);
   const displayOffers = actualOffers.length > 0 ? actualOffers : categoryProducts;
@@ -174,29 +172,20 @@ const App: React.FC = () => {
     return () => clearInterval(offerTimer);
   }, [displayOffers.length, isRemoteMode]);
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsTvMode(true));
-    } else {
-      document.exitFullscreen().then(() => setIsTvMode(false));
-    }
-  };
+  const handleGenerateArt = async (product: Product, style: 'photo' | 'ad' = 'ad') => {
+    if (generatingIds.has(product.id)) return;
+    setGeneratingIds(prev => new Set(prev).add(product.id));
+    setAiError(null);
 
-  const handleGenerateOfferArt = async () => {
-    const currentOffer = displayOffers[activeOfferIndex % displayOffers.length];
-    if (!currentOffer || isGeneratingArt) return;
-
-    setIsGeneratingArt(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      let visualFocus = currentOffer.category === Category.FRUTAS 
-        ? "extremely juicy fruits, glistening with fresh dew, vibrant bursting colors" 
-        : "succulent premium meat, rich marbling, glistening texture, gourmet presentation";
-      
-      const prompt = `Hyper-realistic professional digital signage advertisement for ${currentOffer.name}. ${visualFocus}. Cinematic lighting, luxury market style, 8k detail.`;
+      let contextPrompt = style === 'ad' 
+        ? `High-end luxury supermarket advertisement for ${product.name}. Professional food photography, cinematic lighting, gourmet presentation, 8k resolution. NO TEXT.`
+        : `Hyper-realistic professional studio product photography of ${product.name}, clean white minimalist background, super sharp focus, 8k.`;
+
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: prompt }] },
+        contents: { parts: [{ text: contextPrompt }] },
         config: { imageConfig: { aspectRatio: "1:1" } },
       });
 
@@ -209,18 +198,31 @@ const App: React.FC = () => {
           }
         }
       }
-      if (generatedImageUrl) setProducts(prev => prev.map(p => p.id === currentOffer.id ? { ...p, imageUrl: generatedImageUrl } : p));
-    } catch (error) {
+      if (generatedImageUrl) {
+        setProducts(prev => prev.map(p => p.id === product.id ? { ...p, imageUrl: generatedImageUrl } : p));
+      }
+    } catch (error: any) {
       console.error('Art Generation Error:', error);
+      if (error?.message?.includes('429') || error?.message?.includes('quota')) {
+        setAiError('Limite de IA atingido. Tente novamente mais tarde.');
+      } else {
+        setAiError('Erro ao conectar com a IA. Verifique sua rede.');
+      }
     } finally {
-      setIsGeneratingArt(false);
+      setGeneratingIds(prev => {
+        const next = new Set(prev);
+        next.delete(product.id);
+        return next;
+      });
     }
   };
+
+  const currentOffer = displayOffers[activeOfferIndex % displayOffers.length];
 
   if (isRemoteMode) {
     return (
       <RemoteControl 
-        products={products} 
+        products={products}
         scrollSpeed={scrollSpeed}
         isPartnersEnabled={isPartnersEnabled}
         onTogglePartners={() => setIsPartnersEnabled(!isPartnersEnabled)}
@@ -231,15 +233,10 @@ const App: React.FC = () => {
     );
   }
 
-  const finalScaleX = scaleX + zoomOffset;
-  const finalScaleY = scaleY + zoomOffset;
-  const baseWidth = isPortraitMode ? 1080 : 1920;
-  const baseHeight = isPortraitMode ? 1920 : 1080;
-
   const appStyle = {
-    width: `${baseWidth}px`,
-    height: `${baseHeight}px`,
-    transform: `translate(-50%, -50%) scale(${finalScaleX}, ${finalScaleY}) rotate(${rotation}deg)`,
+    width: `${isPortraitMode ? 1080 : 1920}px`,
+    height: `${isPortraitMode ? 1920 : 1080}px`,
+    transform: `translate(-50%, -50%) scale(${scaleX + zoomOffset}, ${scaleY + zoomOffset}) rotate(${rotation}deg)`,
     transformOrigin: 'center center',
     '--primary-color': theme.primary,
     '--accent-color': theme.accent,
@@ -257,6 +254,11 @@ const App: React.FC = () => {
 
   return (
     <div className={`h-screen w-screen bg-black overflow-hidden relative transition-all duration-500 ${isTvMode ? 'cursor-none' : ''}`} onMouseMove={handleUserActivity}>
+      {aiError && (
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[1000] bg-red-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs shadow-2xl animate-bounce">
+          {aiError}
+        </div>
+      )}
       <div ref={containerRef} style={appStyle} className={`flex flex-col overflow-hidden transition-all duration-700 ease-in-out ${isSpinning ? 'animate-spin-once' : ''}`}>
         <header className="h-32 flex items-center justify-between px-10 border-b border-white/10 relative z-20" style={{ background: `linear-gradient(to r, var(--primary-color), var(--bg-color))` }}>
           <div className="flex items-center gap-8">
@@ -276,15 +278,14 @@ const App: React.FC = () => {
             <PriceList products={products} currentCategory={currentCategory} scrollSpeed={scrollSpeed} />
           </div>
           <div className={`${isPortraitMode ? 'w-full h-[55%]' : 'w-[50%] h-full'} relative overflow-hidden`}>
-            {displayOffers.length > 0 && (
-              <FeaturedOffer offer={displayOffers[activeOfferIndex % displayOffers.length]} isGenerating={isGeneratingArt} onGenerateArt={handleGenerateOfferArt} showControls={showControls} />
+            {currentOffer && (
+              <FeaturedOffer 
+                offer={currentOffer} 
+                isGenerating={generatingIds.has(currentOffer.id)} 
+                onGenerateArt={() => handleGenerateArt(currentOffer, 'ad')} 
+                showControls={showControls} 
+              />
             )}
-            <div className={`absolute top-6 right-6 flex items-center gap-4 transition-opacity duration-1000 ${isTvMode ? 'opacity-100' : 'opacity-0'}`}>
-               <div className="bg-black/40 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-3">
-                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_rgba(220,38,38,1)]"></div><span className="text-[10px] font-black text-white/90 uppercase tracking-widest">AO VIVO</span></div>
-                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">FHD 1080p</span>
-               </div>
-            </div>
           </div>
         </main>
 
@@ -328,12 +329,42 @@ const App: React.FC = () => {
 
       <div className={`fixed bottom-16 right-8 z-[200] flex flex-col gap-5 transition-all duration-500 ${showControls ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20 pointer-events-none'}`}>
         <button onClick={() => setRotation(prev => (prev + 90) % 360)} className="p-6 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-white border border-white/10 shadow-2xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg></button>
-        <button onClick={toggleFullscreen} className={`p-6 rounded-full border border-white/10 backdrop-blur-xl transition-all shadow-2xl ${isTvMode ? 'bg-red-600 text-white' : 'bg-white/10 text-white/40'}`}><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></button>
         <button onClick={() => setIsAdminOpen(true)} className="p-6 bg-white/10 hover:bg-white/20 backdrop-blur-xl rounded-full text-white/40 hover:text-white border border-white/10 shadow-2xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
       </div>
 
       {isAdminOpen && (
-        <AdminMenu products={products} theme={theme} isTvMode={isTvMode} zoomOffset={zoomOffset} fitMode={fitMode} scrollSpeed={scrollSpeed} partners={partners} isPartnersEnabled={isPartnersEnabled} onUpdatePartners={setPartners} onTogglePartners={() => setIsPartnersEnabled(!isPartnersEnabled)} onUpdateScrollSpeed={setScrollSpeed} onUpdateFitMode={setFitMode} onUpdateZoom={setZoomOffset} isHortifrutiEnabled={isHortifrutiEnabled} onToggleHortifruti={() => setIsHortifrutiEnabled(!isHortifrutiEnabled)} onToggleTvMode={toggleFullscreen} onUpdateTheme={setTheme} onClose={() => setIsAdminOpen(false)} onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))} onUpdateImage={(id, img) => setProducts(prev => prev.map(item => item.id === id ? {...item, imageUrl: img} : item))} onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))} onBulkToggleOffers={(off) => setProducts(prev => prev.map(item => ({...item, isOffer: off})))} onAddProduct={(p) => setProducts(prev => [...prev, p])} onRotate90={() => setRotation(prev => (prev + 90) % 360)} onSpin360={() => { setIsSpinning(true); setTimeout(() => setIsSpinning(false), 1200); }} currentRotation={rotation} isSpinning={isSpinning} />
+        <AdminMenu 
+          products={products} 
+          theme={theme} 
+          isTvMode={isTvMode} 
+          zoomOffset={zoomOffset} 
+          fitMode={fitMode} 
+          scrollSpeed={scrollSpeed} 
+          partners={partners} 
+          isPartnersEnabled={isPartnersEnabled} 
+          onUpdatePartners={setPartners} 
+          onTogglePartners={() => setIsPartnersEnabled(!isPartnersEnabled)} 
+          onUpdateScrollSpeed={setScrollSpeed} 
+          onUpdateFitMode={setFitMode} 
+          onUpdateZoom={setZoomOffset} 
+          isHortifrutiEnabled={isHortifrutiEnabled} 
+          onToggleHortifruti={() => setIsHortifrutiEnabled(!isHortifrutiEnabled)} 
+          onToggleTvMode={() => setIsTvMode(!isTvMode)} 
+          onUpdateTheme={setTheme} 
+          onClose={() => setIsAdminOpen(false)} 
+          onUpdatePrice={(id, p) => setProducts(prev => prev.map(item => item.id === id ? {...item, price: p} : item))} 
+          onUpdateImage={(id, img) => setProducts(prev => prev.map(item => item.id === id ? {...item, imageUrl: img} : item))} 
+          onToggleOffer={(id) => setProducts(prev => prev.map(item => item.id === id ? {...item, isOffer: !item.isOffer} : item))} 
+          onBulkToggleOffers={(off) => setProducts(prev => prev.map(item => ({...item, isOffer: off})))} 
+          onAddProduct={(p) => setProducts(prev => [...prev, p])} 
+          onDeleteProduct={(id) => setProducts(prev => prev.filter(p => p.id !== id))}
+          onRotate90={() => setRotation(prev => (prev + 90) % 360)} 
+          onSpin360={() => { setIsSpinning(true); setTimeout(() => setIsSpinning(false), 1200); }} 
+          currentRotation={rotation} 
+          isSpinning={isSpinning} 
+          onManualGenerateArt={handleGenerateArt}
+          generatingIds={generatingIds}
+        />
       )}
     </div>
   );
