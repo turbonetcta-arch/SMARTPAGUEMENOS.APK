@@ -44,6 +44,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
   const [newProdPrice, setNewProdPrice] = useState('');
   const [newProdCategory, setNewProdCategory] = useState<Category>(Category.BOVINOS);
   const [newProdUnit, setNewProdUnit] = useState('kg');
+  const [newProdImageUrl, setNewProdImageUrl] = useState('');
 
   const remoteUrl = `${window.location.origin}${window.location.pathname}?mode=remote`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(remoteUrl)}`;
@@ -67,11 +68,13 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
       price: parseFloat(newProdPrice),
       category: newProdCategory,
       unit: newProdUnit,
-      isOffer: false
+      isOffer: false,
+      imageUrl: newProdImageUrl || undefined
     };
     onAddProduct(newP);
     setNewProdName('');
     setNewProdPrice('');
+    setNewProdImageUrl('');
     setIsAddingProduct(false);
   };
 
@@ -96,25 +99,37 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
         <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
           {activeTab === 'products' ? (
             <div className="space-y-8">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center sticky top-0 bg-zinc-900/80 backdrop-blur-md z-30 pb-4">
                  <button onClick={onRotate90} className="px-6 py-3 bg-indigo-600 text-white font-black text-xs uppercase rounded-xl">Girar Tela ({currentRotation}°)</button>
-                 <button onClick={() => setIsAddingProduct(true)} className="px-8 py-4 bg-yellow-500 text-black font-black text-xs uppercase rounded-2xl shadow-xl hover:scale-105 transition-all">
-                   + Novo Produto
+                 <button onClick={() => setIsAddingProduct(true)} className="px-10 py-5 bg-yellow-500 text-black font-black text-sm uppercase rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                   Adicionar Novo Produto
                  </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
                 {products.map(p => (
-                  <div key={p.id} className="bg-white/5 border border-white/5 p-6 rounded-[2rem] flex flex-col gap-4 relative group">
-                    <button onClick={() => onDeleteProduct(p.id)} className="absolute -top-2 -right-2 p-2 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  <div key={p.id} className="bg-white/5 border border-white/5 p-6 rounded-[2rem] flex flex-col gap-4 relative group hover:border-white/20 transition-all">
+                    <button 
+                      onClick={() => onDeleteProduct(p.id)} 
+                      className="absolute -top-3 -right-3 p-3 bg-red-600 text-white rounded-full transition-all shadow-2xl hover:scale-110 active:scale-90 z-10"
+                      title="Excluir Produto Permanentemente"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
-                    <h4 className="text-white font-black uppercase font-oswald text-lg truncate pr-8">{p.name}</h4>
-                    <div className="flex items-center gap-3 bg-black/50 p-3 rounded-xl">
-                       <span className="text-zinc-600 font-bold text-xs">R$</span>
-                       <input type="number" step="0.01" value={p.price} onChange={(e) => onUpdatePrice(p.id, parseFloat(e.target.value))} className="bg-transparent text-white font-black w-full outline-none" />
+                    <div className="flex items-center gap-4">
+                      {p.imageUrl && (
+                        <div className="w-16 h-16 bg-white rounded-xl overflow-hidden flex-shrink-0">
+                          <img src={p.imageUrl} className="w-full h-full object-cover" alt="" />
+                        </div>
+                      )}
+                      <h4 className="text-white font-black uppercase font-oswald text-lg truncate flex-1">{p.name}</h4>
                     </div>
-                    <button onClick={() => onToggleOffer(p.id)} className={`w-full py-3 rounded-xl text-[10px] font-black uppercase transition-all ${p.isOffer ? 'bg-yellow-500 text-black shadow-lg' : 'bg-white/5 text-zinc-500'}`}>
-                      {p.isOffer ? 'EM OFERTA' : 'DESTACAR'}
+                    <div className="flex items-center gap-3 bg-black/50 p-4 rounded-xl border border-white/5">
+                       <span className="text-zinc-600 font-bold text-xs uppercase">R$</span>
+                       <input type="number" step="0.01" value={p.price} onChange={(e) => onUpdatePrice(p.id, parseFloat(e.target.value))} className="bg-transparent text-white font-black w-full outline-none text-xl" />
+                    </div>
+                    <button onClick={() => onToggleOffer(p.id)} className={`w-full py-4 rounded-xl text-[10px] font-black uppercase transition-all ${p.isOffer ? 'bg-yellow-500 text-black shadow-lg scale-[1.02]' : 'bg-white/5 text-zinc-500'}`}>
+                      {p.isOffer ? '🌟 EM OFERTA NO PAINEL' : 'DESTACAR COMO OFERTA'}
                     </button>
                   </div>
                 ))}
@@ -129,10 +144,10 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8">
                 {partners.map(p => (
                   <div key={p.id} className="bg-white/5 border border-white/10 p-8 rounded-[3rem] flex flex-col items-center group relative shadow-2xl">
-                    <button onClick={() => onUpdatePartners(partners.filter(item => item.id !== p.id))} className="absolute -top-3 -right-3 bg-red-600 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-xl">
+                    <button onClick={() => onUpdatePartners(partners.filter(item => item.id !== p.id))} className="absolute -top-3 -right-3 bg-red-600 text-white p-3 rounded-full shadow-xl hover:scale-110 active:scale-90 transition-all">
                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
-                    <div className="w-full aspect-square bg-white rounded-[2rem] p-6 flex items-center justify-center mb-4">
+                    <div className="w-full aspect-square bg-white rounded-[2rem] p-6 flex items-center justify-center mb-4 overflow-hidden">
                       <img src={p.imageUrl} className="max-h-full object-contain" alt={p.name} />
                     </div>
                     <span className="text-white font-black uppercase text-xs text-center">{p.name}</span>
@@ -162,23 +177,43 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
             <div className="bg-zinc-900 border border-white/10 p-16 rounded-[4rem] w-full max-w-xl shadow-3xl">
               <h3 className="text-4xl font-black text-white font-oswald uppercase mb-10 tracking-tighter text-center italic">Novo Produto</h3>
               <form onSubmit={handleAddProduct} className="space-y-6">
-                <input value={newProdName} onChange={e => setNewProdName(e.target.value)} placeholder="EX: PICANHA ARGENTINA" className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-bold text-xl uppercase outline-none focus:border-yellow-500" />
+                <div className="space-y-2">
+                  <label className="text-zinc-600 text-[10px] font-black uppercase tracking-widest ml-4">Nome do Produto</label>
+                  <input value={newProdName} onChange={e => setNewProdName(e.target.value)} placeholder="EX: PICANHA ARGENTINA" className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-bold text-xl uppercase outline-none focus:border-yellow-500" required />
+                </div>
+                
                 <div className="grid grid-cols-2 gap-6">
-                  <input type="number" step="0.01" value={newProdPrice} onChange={e => setNewProdPrice(e.target.value)} placeholder="0.00" className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-bold text-xl outline-none" />
-                  <select value={newProdUnit} onChange={e => setNewProdUnit(e.target.value)} className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-black uppercase text-sm">
-                    <option value="kg">KG</option>
-                    <option value="un">UN</option>
-                    <option value="pct">PCT</option>
+                  <div className="space-y-2">
+                    <label className="text-zinc-600 text-[10px] font-black uppercase tracking-widest ml-4">Preço (R$)</label>
+                    <input type="number" step="0.01" value={newProdPrice} onChange={e => setNewProdPrice(e.target.value)} placeholder="0.00" className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-bold text-xl outline-none focus:border-yellow-500" required />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-zinc-600 text-[10px] font-black uppercase tracking-widest ml-4">Unidade</label>
+                    <select value={newProdUnit} onChange={e => setNewProdUnit(e.target.value)} className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-black uppercase text-sm outline-none">
+                      <option value="kg">KG</option>
+                      <option value="un">UN</option>
+                      <option value="pct">PCT</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-zinc-600 text-[10px] font-black uppercase tracking-widest ml-4">Categoria</label>
+                  <select value={newProdCategory} onChange={e => setNewProdCategory(e.target.value as Category)} className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-black uppercase text-sm outline-none">
+                    {Object.values(Category).map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
                   </select>
                 </div>
-                <select value={newProdCategory} onChange={e => setNewProdCategory(e.target.value as Category)} className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-black uppercase text-sm">
-                  {Object.values(Category).map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+
+                <div className="space-y-2">
+                  <label className="text-zinc-600 text-[10px] font-black uppercase tracking-widest ml-4">URL da Imagem (Opcional)</label>
+                  <input value={newProdImageUrl} onChange={e => setNewProdImageUrl(e.target.value)} placeholder="https://exemplo.com/imagem.png" className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-bold text-sm outline-none focus:border-yellow-500" />
+                </div>
+
                 <div className="flex gap-6 mt-10">
-                  <button type="button" onClick={() => setIsAddingProduct(false)} className="flex-1 py-6 bg-white/5 text-white font-black rounded-[2rem] uppercase">Cancelar</button>
-                  <button type="submit" className="flex-1 py-6 bg-yellow-500 text-black font-black rounded-[2rem] uppercase shadow-2xl">Cadastrar</button>
+                  <button type="button" onClick={() => setIsAddingProduct(false)} className="flex-1 py-6 bg-white/5 text-white font-black rounded-[2rem] uppercase hover:bg-white/10 transition-all">Cancelar</button>
+                  <button type="submit" className="flex-1 py-6 bg-yellow-500 text-black font-black rounded-[2rem] uppercase shadow-2xl hover:scale-105 active:scale-95 transition-all">Cadastrar Item</button>
                 </div>
               </form>
             </div>
@@ -191,11 +226,11 @@ const AdminMenu: React.FC<AdminMenuProps> = ({
             <div className="bg-zinc-900 border border-white/10 p-16 rounded-[4rem] w-full max-w-xl shadow-3xl">
               <h3 className="text-4xl font-black text-white font-oswald uppercase mb-10 tracking-tighter text-center italic">Adicionar Marca</h3>
               <form onSubmit={handleAddPartner} className="space-y-8">
-                <input value={newPartnerName} onChange={e => setNewPartnerName(e.target.value)} placeholder="NOME DA MARCA" className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-bold text-xl uppercase outline-none focus:border-red-600" />
-                <input value={newPartnerUrl} onChange={e => setNewPartnerUrl(e.target.value)} placeholder="LINK DA IMAGEM" className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-bold" />
+                <input value={newPartnerName} onChange={e => setNewPartnerName(e.target.value)} placeholder="NOME DA MARCA" className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-bold text-xl uppercase outline-none focus:border-red-600" required />
+                <input value={newPartnerUrl} onChange={e => setNewPartnerUrl(e.target.value)} placeholder="LINK DA IMAGEM" className="w-full bg-black border border-white/10 p-6 rounded-[2rem] text-white font-bold outline-none focus:border-red-600" required />
                 <div className="flex gap-6">
                   <button type="button" onClick={() => setIsAddingPartner(false)} className="flex-1 py-6 bg-white/5 text-white font-black rounded-[2rem] uppercase">Cancelar</button>
-                  <button type="submit" className="flex-1 py-6 bg-red-600 text-white font-black rounded-[2rem] uppercase shadow-2xl">Salvar</button>
+                  <button type="submit" className="flex-1 py-6 bg-red-600 text-white font-black rounded-[2rem] uppercase shadow-2xl">Salvar Marca</button>
                 </div>
               </form>
             </div>
